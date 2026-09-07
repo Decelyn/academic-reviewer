@@ -10,13 +10,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Supabase SDK -->
+  <!-- Supabase & Parser SDKs -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
-  <!-- Document Parsers -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-  <!-- OCR Library for Image Text Recognition -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   
   <style>
@@ -50,7 +47,7 @@
       font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
       background-color: var(--bg);
       color: var(--text-main);
-      max-width: 750px;
+      max-width: 780px;
       margin: 0 auto;
       padding: 2.5rem 1.25rem;
       line-height: 1.6;
@@ -65,7 +62,7 @@
       text-align: center;
     }
 
-    h2, h3 {
+    h2, h3, h4 {
       font-weight: 600;
       color: var(--text-main);
       margin-top: 0;
@@ -101,10 +98,7 @@
       margin-bottom: 16px;
     }
 
-    textarea {
-      height: 130px;
-      resize: vertical;
-    }
+    textarea { height: 120px; resize: vertical; }
 
     .file-dropzone {
       border: 2px dashed var(--option-border);
@@ -113,11 +107,8 @@
       padding: 16px;
       text-align: center;
       margin-bottom: 16px;
-      transition: background-color 0.2s ease;
       cursor: pointer;
     }
-
-    .file-dropzone:hover { background-color: #F4F1EA; }
 
     .btn {
       display: inline-flex;
@@ -137,27 +128,9 @@
     }
 
     .btn:hover { background-color: var(--primary-hover); }
-
-    .btn-secondary {
-      width: auto;
-      background-color: var(--secondary-btn);
-      color: var(--secondary-text);
-    }
-
+    .btn-secondary { width: auto; background-color: var(--secondary-btn); color: var(--secondary-text); }
     .btn-secondary:hover { background-color: #E2DFD7; }
-
-    .btn-danger {
-      width: auto;
-      background-color: var(--danger-btn);
-      color: var(--danger-text);
-      padding: 8px 12px;
-      font-size: 0.85rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .btn-danger:hover { background-color: #F8D7D4; }
+    .btn-danger { width: auto; background-color: var(--danger-btn); color: var(--danger-text); padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer; }
 
     .option {
       display: block;
@@ -176,48 +149,30 @@
     }
 
     .option:hover { border-color: var(--primary); background: #FFFFFF; }
+    .correct { background-color: var(--correct-bg) !important; border-color: var(--correct-border) !important; color: var(--correct-text) !important; font-weight: 600; }
+    .incorrect { background-color: var(--incorrect-bg) !important; border-color: var(--incorrect-border) !important; color: var(--incorrect-text) !important; }
 
-    .correct {
-      background-color: var(--correct-bg) !important;
-      border-color: var(--correct-border) !important;
-      color: var(--correct-text) !important;
-      font-weight: 600;
+    /* Flashcard Styles */
+    .flashcard-container { perspective: 1000px; margin: 20px 0; cursor: pointer; }
+    .flashcard {
+      width: 100%; min-height: 200px; background: #FAF9F6; border: 2px solid var(--option-border);
+      border-radius: 16px; display: flex; align-items: center; justify-content: center;
+      padding: 24px; text-align: center; font-size: 1.15rem; font-weight: 600;
+      transition: transform 0.6s; transform-style: preserve-3d; position: relative;
     }
+    .flashcard.flipped { transform: rotateY(180deg); }
+    .flashcard-front, .flashcard-back { backface-visibility: hidden; width: 100%; }
+    .flashcard-back { transform: rotateY(180deg); position: absolute; color: var(--primary); }
 
-    .incorrect {
-      background-color: var(--incorrect-bg) !important;
-      border-color: var(--incorrect-border) !important;
-      color: var(--incorrect-text) !important;
-    }
+    /* Tags & Progress Bar */
+    .tag { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; background: var(--secondary-btn); color: var(--secondary-text); margin-bottom: 6px; }
+    .progress-bar-bg { width: 100%; height: 8px; background: var(--option-border); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+    .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+    .timer-badge { font-weight: 700; color: var(--danger-text); background: var(--danger-btn); padding: 4px 10px; border-radius: 8px; font-size: 0.9rem; }
 
-    .hint {
-      color: var(--hint-text);
-      background-color: var(--hint-bg);
-      padding: 14px 16px;
-      border-radius: 10px;
-      margin-top: 14px;
-      font-size: 0.9rem;
-    }
-
-    .feedback {
-      padding: 14px 16px;
-      border-radius: 10px;
-      margin-top: 14px;
-      font-size: 0.95rem;
-      font-weight: 500;
-    }
-
-    .lesson-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--card-border);
-    }
-
+    .lesson-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--card-border); }
     .lesson-item:last-child { border-bottom: none; }
     .lesson-actions { display: flex; gap: 8px; align-items: center; }
-    .lesson-title { font-weight: 600; color: var(--text-main); }
     .hidden { display: none; }
   </style>
 </head>
@@ -230,13 +185,22 @@
       <h3>Add New Lesson / Transes</h3>
       
       <label for="lessonTitle">Lesson Title</label>
-      <input type="text" id="lessonTitle" placeholder="e.g., Parasitology - Amoebiasis & Giardiasis">
+      <input type="text" id="lessonTitle" placeholder="e.g., Amoebiasis & Giardiasis">
+
+      <label for="categorySelect">Subject Category</label>
+      <select id="categorySelect">
+        <option value="Parasitology">Parasitology</option>
+        <option value="Pathology">Pathology</option>
+        <option value="Microbiology">Microbiology</option>
+        <option value="Pharmacology">Pharmacology</option>
+        <option value="General">General / Other</option>
+      </select>
       
       <div class="file-dropzone">
         <label for="fileInput" style="cursor: pointer; color: var(--primary); margin-bottom: 4px; display: block;">
           📁 Upload File or Image (.pdf, .docx, .png, .jpg, .txt)
         </label>
-        <span id="fileStatus" style="font-size: 0.85rem; color: var(--text-muted); display: block;">Or paste your text below directly</span>
+        <span id="fileStatus" style="font-size: 0.85rem; color: var(--text-muted); display: block;">Or paste text directly</span>
         <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg" style="display: none;">
       </div>
 
@@ -247,30 +211,81 @@
       <select id="numQuestions">
         <option value="10">10 Questions</option>
         <option value="20">20 Questions</option>
+        <option value="30">30 Questions</option>
         <option value="50">50 Questions</option>
+        <option value="100">100 Questions</option>
       </select>
       
       <button class="btn" id="generateBtn" type="button">Generate Interactive Quiz</button>
     </div>
 
     <div class="box">
-      <h3>Your Saved Lessons</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3>Your Saved Lessons</h3>
+        <select id="filterCategory" style="width: auto; margin-bottom: 0; padding: 6px 10px;">
+          <option value="All">All Categories</option>
+          <option value="Parasitology">Parasitology</option>
+          <option value="Pathology">Pathology</option>
+          <option value="Microbiology">Microbiology</option>
+          <option value="Pharmacology">Pharmacology</option>
+          <option value="General">General</option>
+        </select>
+      </div>
       <div id="lessonList">Loading saved lessons...</div>
     </div>
   </div>
 
   <div id="quiz" class="hidden">
     <div class="box">
-      <button class="btn btn-secondary" id="backBtn">← Back to Lessons</button>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <button class="btn btn-secondary" id="backBtn">← Back</button>
+        <div id="timerDisplay" class="timer-badge hidden">⏱️ <span id="timeRemaining">30</span>s</div>
+        <div>
+          <button class="btn btn-secondary" id="modeBtn">Flip to Flashcards 🎴</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px; display: flex; gap: 12px; align-items: center;">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; margin-bottom: 0;">
+          <input type="checkbox" id="timerToggle"> Enable 30s Timer per Question
+        </label>
+      </div>
+
       <h2 id="qTitle" style="margin-top: 16px;"></h2>
-      <p id="qText" style="font-size: 1.05rem; font-weight: 600; color: var(--text-main); margin-top: 16px;"></p>
-      
-      <div id="options"></div>
-      
-      <div id="hint" class="hint hidden"></div>
-      <div id="feedback" class="feedback hidden"></div>
-      
-      <div style="margin-top: 20px; display: flex; gap: 10px;">
+
+      <!-- Quiz View -->
+      <div id="quizView">
+        <p id="qText" style="font-size: 1.05rem; font-weight: 600; color: var(--text-main); margin-top: 16px;"></p>
+        <div id="options"></div>
+        <div id="hint" class="hint hidden"></div>
+        <div id="feedback" class="feedback hidden"></div>
+      </div>
+
+      <!-- Flashcard View -->
+      <div id="flashcardView" class="hidden">
+        <div class="flashcard-container" id="flashcardContainer">
+          <div class="flashcard" id="flashcard">
+            <div class="flashcard-front" id="cardFront">Question Text</div>
+            <div class="flashcard-back" id="cardBack">Answer & Explanation</div>
+          </div>
+        </div>
+        <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">Click card to flip</p>
+      </div>
+
+      <!-- End of Lesson Review Sheet View -->
+      <div id="summaryView" class="hidden">
+        <h3 style="color: var(--primary);">🎉 Lesson Complete!</h3>
+        <p id="scoreSummary" style="font-size: 1.1rem; font-weight: 600;"></p>
+        
+        <div style="margin: 20px 0; background: #FAF9F6; border: 1px solid var(--option-border); padding: 18px; border-radius: 12px;">
+          <h4>📌 Key Concept Summary Sheet</h4>
+          <ul id="summaryList" style="padding-left: 20px; color: var(--text-main);"></ul>
+        </div>
+
+        <button class="btn btn-secondary" id="reviewWeakBtn" style="margin-top: 10px; width: 100%;">⚠️ Review Missed Questions Deck</button>
+      </div>
+
+      <div style="margin-top: 20px; display: flex; gap: 10px;" id="quizControls">
         <button class="btn btn-secondary" id="hintBtn">Toggle Hint</button>
         <button id="nextBtn" class="btn hidden">Next Question →</button>
       </div>
@@ -285,10 +300,8 @@
     var SUPABASE_URL = "https://ahswtcanvsljnprksgem.supabase.co";
     var SUPABASE_ANON_KEY = "sb_publishable__JiMbUYibb3YkSZlyaZVHg_5EaXv-BA";
     
-    var dbClient = null;
-    var currentLesson = null;
-    var currentQuestions = [];
-    var currentIndex = 0;
+    var dbClient = null, currentLesson = null, currentQuestions = [], currentIndex = 0;
+    var isFlashcardMode = false, score = 0, missedIndexes = [], timerInterval = null, timeLeft = 30;
 
     function getSupabaseClient() {
       if (!dbClient && window.supabase && typeof window.supabase.createClient === 'function') {
@@ -299,20 +312,23 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       var client = getSupabaseClient();
-      if (client) {
-        loadLessons();
-      } else {
-        setTimeout(function() { if (getSupabaseClient()) loadLessons(); }, 1000);
-      }
+      if (client) loadLessons();
+      else setTimeout(function() { if (getSupabaseClient()) loadLessons(); }, 1000);
 
       document.getElementById("generateBtn").addEventListener("click", handleGenerateClick);
       document.getElementById("backBtn").addEventListener("click", exitQuiz);
-      document.getElementById("hintBtn").addEventListener("click", toggleHint);
+      document.getElementById("hintBtn").addEventListener("click", function() { document.getElementById('hint').classList.toggle('hidden'); });
       document.getElementById("nextBtn").addEventListener("click", nextQuestion);
+      document.getElementById("modeBtn").addEventListener("click", toggleMode);
+      document.getElementById("filterCategory").addEventListener("change", loadLessons);
+      document.getElementById("reviewWeakBtn").addEventListener("click", startWeakSpotReview);
       
+      document.getElementById("flashcardContainer").addEventListener("click", function() {
+        document.getElementById("flashcard").classList.toggle("flipped");
+      });
+
       var fileDropzone = document.querySelector(".file-dropzone");
       var fileInput = document.getElementById("fileInput");
-      
       fileDropzone.addEventListener("click", function() { fileInput.click(); });
       fileInput.addEventListener("change", handleFileUpload);
     });
@@ -326,222 +342,178 @@
       var titleInput = document.getElementById("lessonTitle");
 
       fileStatus.innerText = "Reading " + file.name + "...";
-
-      if (!titleInput.value) {
-        titleInput.value = file.name.replace(/\.[^/.]+$/, "");
-      }
+      if (!titleInput.value) titleInput.value = file.name.replace(/\.[^/.]+$/, "");
 
       try {
-        // Image Parsing via OCR (PNG, JPG, JPEG)
         if (file.type.startsWith('image/')) {
-          fileStatus.innerText = "🔍 Scanning text inside image (OCR)...";
-          var result = await Tesseract.recognize(file, 'eng', {
-            logger: function(m) {
-              if (m.status === 'recognizing text') {
-                fileStatus.innerText = "Scanning text inside image: " + Math.round(m.progress * 100) + "%";
-              }
-            }
-          });
+          var result = await Tesseract.recognize(file, 'eng');
           transcriptBox.value = result.data.text;
-          fileStatus.innerText = "Loaded image text: " + file.name;
-        }
-        else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
-          var text = await file.text();
-          transcriptBox.value = text;
-          fileStatus.innerText = "Loaded: " + file.name;
-        } 
-        else if (file.name.endsWith('.docx')) {
+        } else if (file.name.endsWith('.docx')) {
           var arrayBuffer = await file.arrayBuffer();
           var result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
           transcriptBox.value = result.value;
-          fileStatus.innerText = "Loaded: " + file.name;
-        } 
-        else if (file.name.endsWith('.pdf')) {
+        } else if (file.name.endsWith('.pdf')) {
           var arrayBuffer = await file.arrayBuffer();
           var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
           var extractedText = "";
-          
           for (var i = 1; i <= pdf.numPages; i++) {
             var page = await pdf.getPage(i);
             var content = await page.getTextContent();
-            var pageText = content.items.map(function(item) { return item.str; }).join(" ");
-            extractedText += pageText + "\n";
+            extractedText += content.items.map(item => item.str).join(" ") + "\n";
           }
-          
-          // If PDF contains scanned images instead of text
-          if (extractedText.trim().length < 20) {
-            fileStatus.innerText = "PDF appears to be a scanned image. Extracting via OCR...";
-            // OCR processing first page
-            var page = await pdf.getPage(1);
-            var viewport = page.getViewport({ scale: 1.5 });
-            var canvas = document.createElement('canvas');
-            var ctx = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-            
-            var ocrResult = await Tesseract.recognize(canvas, 'eng');
-            extractedText = ocrResult.data.text;
-          }
-
           transcriptBox.value = extractedText;
-          fileStatus.innerText = "Loaded: " + file.name;
         } else {
-          alert("Unsupported file format.");
-          fileStatus.innerText = "Or paste your text below directly";
+          transcriptBox.value = await file.text();
         }
+        fileStatus.innerText = "Loaded: " + file.name;
       } catch (err) {
-        console.error("File processing error:", err);
-        alert("Failed to read file: " + err.message);
-        fileStatus.innerText = "Error reading file. Try pasting text manually.";
+        alert("File error: " + err.message);
       }
     }
 
     function loadLessons() {
       var client = getSupabaseClient();
       if (!client) return;
-      client.from('lessons').select('id, title, created_at').order('created_at', { ascending: false })
-        .then(function(res) {
-          var container = document.getElementById('lessonList');
-          if (res.error || !res.data || res.data.length === 0) {
-            container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.9rem;'>No saved lessons found.</p>";
-            return;
-          }
-          
+      var selectedCat = document.getElementById("filterCategory").value;
+
+      var query = client.from('lessons').select('id, title, category, created_at').order('created_at', { ascending: false });
+      if (selectedCat !== 'All') query = query.eq('category', selectedCat);
+
+      query.then(function(res) {
+        var container = document.getElementById('lessonList');
+        if (!res.data || res.data.length === 0) {
+          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.9rem;'>No saved lessons found.</p>";
+          return;
+        }
+
+        client.from('progress').select('*').then(function(progRes) {
+          var progMap = {};
+          if (progRes.data) progRes.data.forEach(p => progMap[p.lesson_id] = p);
+
           container.innerHTML = res.data.map(function(l) {
+            var prog = progMap[l.id] || { best_score: 0, current_question_index: 0, total_questions: 10 };
+            var pct = prog.total_questions ? Math.round((prog.best_score / prog.total_questions) * 100) : 0;
+            
             return '<div class="lesson-item">' +
-                     '<span class="lesson-title">' + l.title + '</span>' +
+                     '<div>' +
+                       '<span class="tag">' + (l.category || 'General') + '</span>' +
+                       '<div class="lesson-title">' + l.title + '</div>' +
+                       '<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Best Score: ' + pct + '%</div>' +
+                       '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ' + pct + '%;"></div></div>' +
+                     '</div>' +
                      '<div class="lesson-actions">' +
-                       '<button class="btn btn-secondary" style="padding: 8px 14px; font-size: 0.85rem;" onclick="startQuiz(\'' + l.id + '\')">Start / Resume</button>' +
-                       '<button class="btn btn-danger" onclick="deleteLesson(\'' + l.id + '\', \'' + l.title.replace(/'/g, "\\'") + '\')">🗑️</button>' +
+                       '<button class="btn btn-secondary" style="padding: 8px 14px; font-size: 0.85rem;" onclick="startQuiz(\'' + l.id + '\')">Start</button>' +
+                       '<button class="btn btn-danger" onclick="deleteLesson(\'' + l.id + '\')">🗑️</button>' +
                      '</div>' +
                    '</div>';
           }).join('');
         });
-    }
-
-    function deleteLesson(lessonId, title) {
-      if (!confirm("Are you sure you want to delete '" + title + "'?")) return;
-      
-      var client = getSupabaseClient();
-      if (!client) return;
-
-      client.from('lessons').delete().eq('id', lessonId).then(function(res) {
-        if (res.error) {
-          alert("Failed to delete lesson: " + res.error.message);
-        } else {
-          loadLessons();
-        }
       });
     }
 
     function handleGenerateClick() {
       var title = document.getElementById('lessonTitle').value;
+      var category = document.getElementById('categorySelect').value;
       var transcript = document.getElementById('transcript').value;
       var numQuestions = document.getElementById('numQuestions').value;
 
-      if (!title || !transcript) {
-        alert("Please enter a Lesson Title and provide Notes/Transes (or upload a file).");
-        return;
-      }
-
-      var client = getSupabaseClient();
-      if (!client) {
-        alert("Database SDK failed to connect. Please refresh.");
-        return;
-      }
+      if (!title || !transcript) return alert("Please fill in Title and Text Notes.");
 
       var genBtn = document.getElementById('generateBtn');
-      genBtn.disabled = true;
-      genBtn.innerText = "Generating Quiz... (Please wait 15-30s)";
+      genBtn.disabled = true; genBtn.innerText = "Generating Quiz... (15-30s)";
 
-      client.functions.invoke('generate-quiz', {
+      getSupabaseClient().functions.invoke('generate-quiz', {
         body: { transcript: transcript, numQuestions: numQuestions }
       }).then(function(res) {
-        if (res.error || !res.data || !res.data.quiz) {
-          console.error("Quiz Error:", res.error);
-          alert("Failed to generate quiz. Please check your Edge Function or API key.");
-          genBtn.disabled = false;
-          genBtn.innerText = "Generate Interactive Quiz";
+        if (res.error || !res.data) {
+          alert("Generation failed. Check Edge Function.");
+          genBtn.disabled = false; genBtn.innerText = "Generate Interactive Quiz";
           return;
         }
 
-        client.from('lessons').insert([
-          { title: title, questions: res.data.quiz }
+        getSupabaseClient().from('lessons').insert([
+          { title: title, category: category, questions: res.data.quiz, summary: res.data.summary || [] }
         ]).select().single().then(function(dbRes) {
-          if (dbRes.error) {
-            alert("Error saving to database: " + dbRes.error.message);
-            genBtn.disabled = false;
-            genBtn.innerText = "Generate Interactive Quiz";
-            return;
-          }
-
-          client.from('progress').insert([{ lesson_id: dbRes.data.id, current_question_index: 0 }])
+          getSupabaseClient().from('progress').insert([{ lesson_id: dbRes.data.id, current_question_index: 0, total_questions: res.data.quiz.length }])
             .then(function() {
-              document.getElementById('lessonTitle').value = "";
-              document.getElementById('transcript').value = "";
-              document.getElementById('fileStatus').innerText = "Or paste your text below directly";
-              genBtn.disabled = false;
-              genBtn.innerText = "Generate Interactive Quiz";
+              genBtn.disabled = false; genBtn.innerText = "Generate Interactive Quiz";
               loadLessons();
               startQuiz(dbRes.data.id);
             });
         });
-      }).catch(function(err) {
-        console.error(err);
-        alert("System Error: " + err.message);
-        genBtn.disabled = false;
-        genBtn.innerText = "Generate Interactive Quiz";
       });
     }
 
     function startQuiz(lessonId) {
-      var client = getSupabaseClient();
-      if (!client) return;
-      client.from('lessons').select('*').eq('id', lessonId).single().then(function(lessonRes) {
-        client.from('progress').select('*').eq('lesson_id', lessonId).single().then(function(progRes) {
-          currentLesson = lessonRes.data;
-          currentQuestions = currentLesson.questions;
-          currentIndex = progRes.data ? progRes.data.current_question_index : 0;
+      getSupabaseClient().from('lessons').select('*').eq('id', lessonId).single().then(function(lessonRes) {
+        currentLesson = lessonRes.data;
+        currentQuestions = currentLesson.questions;
+        currentIndex = 0; score = 0; missedIndexes = [];
 
-          document.getElementById('setup').classList.add('hidden');
-          document.getElementById('quiz').classList.remove('hidden');
-          renderQuestion();
-        });
+        document.getElementById('setup').classList.add('hidden');
+        document.getElementById('quiz').classList.remove('hidden');
+        document.getElementById('summaryView').classList.add('hidden');
+        document.getElementById('quizControls').classList.remove('hidden');
+        
+        renderQuestion();
       });
     }
 
     function renderQuestion() {
+      stopTimer();
+      document.getElementById("flashcard").classList.remove("flipped");
+
       if (currentIndex >= currentQuestions.length) {
-        document.getElementById('qTitle').innerText = currentLesson.title;
-        document.getElementById('qText').innerText = "🎉 Quiz Completed! You've reviewed all material for this lesson.";
-        document.getElementById('options').innerHTML = "";
-        document.getElementById('nextBtn').classList.add('hidden');
+        finishQuiz();
         return;
       }
 
       var q = currentQuestions[currentIndex];
       document.getElementById('qTitle').innerText = currentLesson.title + " (" + (currentIndex + 1) + "/" + currentQuestions.length + ")";
+      
       document.getElementById('qText').innerText = q.question;
-      
-      var hintBox = document.getElementById('hint');
-      hintBox.innerText = "💡 Hint: " + q.hint;
-      hintBox.classList.add('hidden');
-      
+      document.getElementById('hint').innerText = "💡 Hint: " + q.hint;
+      document.getElementById('hint').classList.add('hidden');
       document.getElementById('feedback').classList.add('hidden');
       document.getElementById('nextBtn').classList.add('hidden');
 
       var optsDiv = document.getElementById('options');
-      optsDiv.innerHTML = q.options.map(function(opt, i) {
-        return '<button class="option" onclick="checkAnswer(' + i + ')">' + opt + '</button>';
-      }).join('');
+      optsDiv.innerHTML = q.options.map((opt, i) => `<button class="option" onclick="checkAnswer(${i})">${opt}</button>`).join('');
+
+      document.getElementById('cardFront').innerText = q.question;
+      document.getElementById('cardBack').innerText = "Answer: " + q.options[q.answer] + "\n\n" + q.explanation;
+
+      if (document.getElementById("timerToggle").checked && !isFlashcardMode) {
+        startTimer();
+      }
+    }
+
+    function startTimer() {
+      timeLeft = 30;
+      document.getElementById("timerDisplay").classList.remove("hidden");
+      document.getElementById("timeRemaining").innerText = timeLeft;
+
+      timerInterval = setInterval(function() {
+        timeLeft--;
+        document.getElementById("timeRemaining").innerText = timeLeft;
+        if (timeLeft <= 0) {
+          stopTimer();
+          checkAnswer(-1);
+        }
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      document.getElementById("timerDisplay").classList.add("hidden");
     }
 
     function checkAnswer(selectedIdx) {
+      stopTimer();
       var q = currentQuestions[currentIndex];
       var btns = document.querySelectorAll('.option');
       
-      btns.forEach(function(btn, i) {
+      btns.forEach((btn, i) => {
         btn.disabled = true;
         if (i === q.answer) btn.classList.add('correct');
         if (i === selectedIdx && i !== q.answer) btn.classList.add('incorrect');
@@ -551,24 +523,16 @@
       fb.classList.remove('hidden');
       
       if (selectedIdx === q.answer) {
+        score++;
         fb.innerText = "✅ Correct! " + q.explanation;
-        fb.style.backgroundColor = "var(--correct-bg)";
-        fb.style.color = "var(--correct-text)";
+        fb.className = "feedback correct";
       } else {
+        missedIndexes.push(currentIndex);
         fb.innerText = "❌ Incorrect. " + q.explanation;
-        fb.style.backgroundColor = "var(--incorrect-bg)";
-        fb.style.color = "var(--incorrect-text)";
+        fb.className = "feedback incorrect";
       }
 
       document.getElementById('nextBtn').classList.remove('hidden');
-
-      var client = getSupabaseClient();
-      if (client) {
-        client.from('progress').upsert({
-          lesson_id: currentLesson.id,
-          current_question_index: currentIndex + 1
-        });
-      }
     }
 
     function nextQuestion() {
@@ -576,13 +540,60 @@
       renderQuestion();
     }
 
-    function toggleHint() {
-      document.getElementById('hint').classList.toggle('hidden');
+    function finishQuiz() {
+      document.getElementById('quizView').classList.add('hidden');
+      document.getElementById('flashcardView').classList.add('hidden');
+      document.getElementById('quizControls').classList.add('hidden');
+      document.getElementById('summaryView').classList.remove('hidden');
+
+      var pct = Math.round((score / currentQuestions.length) * 100);
+      document.getElementById('scoreSummary').innerText = `You scored ${score} / ${currentQuestions.length} (${pct}%)`;
+
+      var sumList = document.getElementById('summaryList');
+      var summaryItems = currentLesson.summary || ["Review core lecture concepts carefully."];
+      sumList.innerHTML = summaryItems.map(item => `<li>${item}</li>`).join('');
+
+      var weakBtn = document.getElementById('reviewWeakBtn');
+      if (missedIndexes.length > 0) weakBtn.classList.remove('hidden');
+      else weakBtn.classList.add('hidden');
+
+      getSupabaseClient().from('progress').upsert({
+        lesson_id: currentLesson.id,
+        best_score: score,
+        total_questions: currentQuestions.length,
+        current_question_index: currentQuestions.length
+      });
+    }
+
+    function startWeakSpotReview() {
+      currentQuestions = missedIndexes.map(i => currentLesson.questions[i]);
+      currentIndex = 0; score = 0; missedIndexes = [];
+      document.getElementById('summaryView').classList.add('hidden');
+      document.getElementById('quizView').classList.remove('hidden');
+      document.getElementById('quizControls').classList.remove('hidden');
+      renderQuestion();
+    }
+
+    function toggleMode() {
+      isFlashcardMode = !isFlashcardMode;
+      document.getElementById('modeBtn').innerText = isFlashcardMode ? "Flip to Quiz 📝" : "Flip to Flashcards 🎴";
+      document.getElementById('quizView').classList.toggle('hidden', isFlashcardMode);
+      document.getElementById('flashcardView').classList.toggle('hidden', !isFlashcardMode);
+      if (isFlashcardMode) stopTimer();
+    }
+
+    function deleteLesson(id) {
+      if (confirm("Delete this lesson?")) {
+        getSupabaseClient().from('lessons').delete().eq('id', id).then(loadLessons);
+      }
     }
 
     function exitQuiz() {
+      stopTimer();
       document.getElementById('quiz').classList.add('hidden');
       document.getElementById('setup').classList.remove('hidden');
+      document.getElementById('quizView').classList.remove('hidden');
+      document.getElementById('flashcardView').classList.add('hidden');
       loadLessons();
     }
   </script>
