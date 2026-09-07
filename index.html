@@ -189,11 +189,11 @@
 
       <label for="categorySelect">Subject Category</label>
       <select id="categorySelect">
-        <option value="NP I">Nursing Practice I – Care of Individuals, Families, Population Groups, and Community</option>
-        <option value="NP II">Nursing Practice II – Care of Mother, Adolescent, At Risk or With Problems</option>
-        <option value="NP III">Nursing Practice III – Care of Clients with Surgery, Oxygenation, Fluids, Infections</option>
-        <option value="NP IV">Nursing Practice IV – Care of Clients with GI, Endocrine, Perception, Coordination</option>
-        <option value="NP V">Nursing Practice V – Care of Clients with Maladaptive Behavior, Life-Threatening/Emergency</option>
+        <option value="Nursing Practice I">Nursing Practice I</option>
+        <option value="Nursing Practice II">Nursing Practice II</option>
+        <option value="Nursing Practice III">Nursing Practice III</option>
+        <option value="Nursing Practice IV">Nursing Practice IV</option>
+        <option value="Nursing Practice V">Nursing Practice V</option>
       </select>
       
       <div class="file-dropzone">
@@ -224,11 +224,11 @@
         <h3>Your Saved Lessons</h3>
         <select id="filterCategory" style="width: auto; margin-bottom: 0; padding: 6px 10px;">
           <option value="All">All Categories</option>
-          <option value="NP I">Nursing Practice I</option>
-          <option value="NP II">Nursing Practice II</option>
-          <option value="NP III">Nursing Practice III</option>
-          <option value="NP IV">Nursing Practice IV</option>
-          <option value="NP V">Nursing Practice V</option>
+          <option value="Nursing Practice I">Nursing Practice I</option>
+          <option value="Nursing Practice II">Nursing Practice II</option>
+          <option value="Nursing Practice III">Nursing Practice III</option>
+          <option value="Nursing Practice IV">Nursing Practice IV</option>
+          <option value="Nursing Practice V">Nursing Practice V</option>
         </select>
       </div>
       <div id="lessonList">Loading saved lessons...</div>
@@ -396,7 +396,7 @@
             
             return '<div class="lesson-item">' +
                      '<div>' +
-                       '<span class="tag">' + (l.category || 'General') + '</span>' +
+                       '<span class="tag">' + (l.category || 'Nursing Practice I') + '</span>' +
                        '<div class="lesson-title">' + l.title + '</div>' +
                        '<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Best Score: ' + pct + '%</div>' +
                        '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ' + pct + '%;"></div></div>' +
