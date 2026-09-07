@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome back, Bazty James!</title>
+  <title>Welcome back, Decelyn!</title>
   
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,10 +13,11 @@
   <!-- Supabase SDK -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-  <!-- PDF.js for reading PDF files -->
+  <!-- Document Parsers -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <!-- Mammoth.js for reading Word (.docx) files -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <!-- OCR Library for Image Text Recognition -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   
   <style>
     :root {
@@ -116,9 +117,7 @@
       cursor: pointer;
     }
 
-    .file-dropzone:hover {
-      background-color: #F4F1EA;
-    }
+    .file-dropzone:hover { background-color: #F4F1EA; }
 
     .btn {
       display: inline-flex;
@@ -156,7 +155,6 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s ease;
     }
 
     .btn-danger:hover { background-color: #F8D7D4; }
@@ -225,7 +223,7 @@
 </head>
 <body>
 
-  <h1>Welcome back, Bazty James!</h1>
+  <h1>Welcome back, Decelyn!</h1>
 
   <div id="setup">
     <div class="box">
@@ -234,17 +232,16 @@
       <label for="lessonTitle">Lesson Title</label>
       <input type="text" id="lessonTitle" placeholder="e.g., Parasitology - Amoebiasis & Giardiasis">
       
-      <!-- Upload File Input -->
       <div class="file-dropzone">
         <label for="fileInput" style="cursor: pointer; color: var(--primary); margin-bottom: 4px; display: block;">
-          📁 Upload Notes File (.pdf, .docx, .txt)
+          📁 Upload File or Image (.pdf, .docx, .png, .jpg, .txt)
         </label>
         <span id="fileStatus" style="font-size: 0.85rem; color: var(--text-muted); display: block;">Or paste your text below directly</span>
-        <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md" style="display: none;">
+        <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg" style="display: none;">
       </div>
 
       <label for="transcript">Transes / Notes Text</label>
-      <textarea id="transcript" placeholder="Paste or extracted file text will appear here..."></textarea>
+      <textarea id="transcript" placeholder="Extracted text from notes or images will appear here..."></textarea>
       
       <label for="numQuestions">Number of Questions</label>
       <select id="numQuestions">
@@ -335,7 +332,20 @@
       }
 
       try {
-        if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+        // Image Parsing via OCR (PNG, JPG, JPEG)
+        if (file.type.startsWith('image/')) {
+          fileStatus.innerText = "🔍 Scanning text inside image (OCR)...";
+          var result = await Tesseract.recognize(file, 'eng', {
+            logger: function(m) {
+              if (m.status === 'recognizing text') {
+                fileStatus.innerText = "Scanning text inside image: " + Math.round(m.progress * 100) + "%";
+              }
+            }
+          });
+          transcriptBox.value = result.data.text;
+          fileStatus.innerText = "Loaded image text: " + file.name;
+        }
+        else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
           var text = await file.text();
           transcriptBox.value = text;
           fileStatus.innerText = "Loaded: " + file.name;
@@ -358,10 +368,26 @@
             extractedText += pageText + "\n";
           }
           
+          // If PDF contains scanned images instead of text
+          if (extractedText.trim().length < 20) {
+            fileStatus.innerText = "PDF appears to be a scanned image. Extracting via OCR...";
+            // OCR processing first page
+            var page = await pdf.getPage(1);
+            var viewport = page.getViewport({ scale: 1.5 });
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            
+            var ocrResult = await Tesseract.recognize(canvas, 'eng');
+            extractedText = ocrResult.data.text;
+          }
+
           transcriptBox.value = extractedText;
           fileStatus.innerText = "Loaded: " + file.name;
         } else {
-          alert("Unsupported file format. Please upload a .pdf, .docx, or .txt file.");
+          alert("Unsupported file format.");
           fileStatus.innerText = "Or paste your text below directly";
         }
       } catch (err) {
