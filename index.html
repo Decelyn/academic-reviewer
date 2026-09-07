@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -10,13 +10,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Primary Supabase CDN (unpkg) with fallback -->
+  <!-- Supabase SDK -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  <script>
-    if (!window.supabase) {
-      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.39.8/supabase.min.js"><\/script>');
-    }
-  </script>
+
+  <!-- PDF.js for reading PDF files -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- Mammoth.js for reading Word (.docx) files -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   
   <style>
     :root {
@@ -29,6 +29,8 @@
       --primary-hover: #C56343;
       --secondary-btn: #EFECE6;
       --secondary-text: #4A4640;
+      --danger-btn: #FCE8E6;
+      --danger-text: #C5221F;
       --option-bg: #FCFBFA;
       --option-border: #E8E4DD;
       --correct-bg: #EAEFD9;
@@ -86,7 +88,7 @@
       margin-bottom: 6px;
     }
 
-    input[type="text"], textarea, select {
+    input[type="text"], textarea, select, input[type="file"] {
       width: 100%;
       font-family: inherit;
       font-size: 0.95rem;
@@ -103,11 +105,19 @@
       resize: vertical;
     }
 
-    input[type="text"]:focus, textarea:focus, select:focus {
-      outline: none;
-      background-color: #FFFFFF;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.15);
+    .file-dropzone {
+      border: 2px dashed var(--option-border);
+      background-color: #FAF9F6;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 16px;
+      transition: background-color 0.2s ease;
+      cursor: pointer;
+    }
+
+    .file-dropzone:hover {
+      background-color: #F4F1EA;
     }
 
     .btn {
@@ -127,20 +137,29 @@
       width: 100%;
     }
 
-    .btn:hover {
-      background-color: var(--primary-hover);
-    }
+    .btn:hover { background-color: var(--primary-hover); }
 
     .btn-secondary {
       width: auto;
       background-color: var(--secondary-btn);
       color: var(--secondary-text);
-      margin-right: 10px;
     }
 
-    .btn-secondary:hover {
-      background-color: #E2DFD7;
+    .btn-secondary:hover { background-color: #E2DFD7; }
+
+    .btn-danger {
+      width: auto;
+      background-color: var(--danger-btn);
+      color: var(--danger-text);
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
+
+    .btn-danger:hover { background-color: #F8D7D4; }
 
     .option {
       display: block;
@@ -158,10 +177,7 @@
       transition: all 0.2s ease;
     }
 
-    .option:hover {
-      border-color: var(--primary);
-      background: #FFFFFF;
-    }
+    .option:hover { border-color: var(--primary); background: #FFFFFF; }
 
     .correct {
       background-color: var(--correct-bg) !important;
@@ -201,15 +217,9 @@
       border-bottom: 1px solid var(--card-border);
     }
 
-    .lesson-item:last-child {
-      border-bottom: none;
-    }
-
-    .lesson-title {
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
+    .lesson-item:last-child { border-bottom: none; }
+    .lesson-actions { display: flex; gap: 8px; align-items: center; }
+    .lesson-title { font-weight: 600; color: var(--text-main); }
     .hidden { display: none; }
   </style>
 </head>
@@ -222,17 +232,25 @@
       <h3>Add New Lesson / Transes</h3>
       
       <label for="lessonTitle">Lesson Title</label>
-      <input type="text" id="lessonTitle" placeholder="e.g., Biology - Chapter 1 Cell Structure">
+      <input type="text" id="lessonTitle" placeholder="e.g., Parasitology - Amoebiasis & Giardiasis">
       
+      <!-- Upload File Input -->
+      <div class="file-dropzone">
+        <label for="fileInput" style="cursor: pointer; color: var(--primary); margin-bottom: 4px; display: block;">
+          📁 Upload Notes File (.pdf, .docx, .txt)
+        </label>
+        <span id="fileStatus" style="font-size: 0.85rem; color: var(--text-muted); display: block;">Or paste your text below directly</span>
+        <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md" style="display: none;">
+      </div>
+
       <label for="transcript">Transes / Notes Text</label>
-      <textarea id="transcript" placeholder="Paste your transcripts or notes here..."></textarea>
+      <textarea id="transcript" placeholder="Paste or extracted file text will appear here..."></textarea>
       
       <label for="numQuestions">Number of Questions</label>
       <select id="numQuestions">
         <option value="10">10 Questions</option>
         <option value="20">20 Questions</option>
         <option value="50">50 Questions</option>
-        <option value="100">100 Questions</option>
       </select>
       
       <button class="btn" id="generateBtn" type="button">Generate Interactive Quiz</button>
@@ -263,6 +281,10 @@
   </div>
 
   <script>
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
     var SUPABASE_URL = "https://ahswtcanvsljnprksgem.supabase.co";
     var SUPABASE_ANON_KEY = "sb_publishable__JiMbUYibb3YkSZlyaZVHg_5EaXv-BA";
     
@@ -272,12 +294,8 @@
     var currentIndex = 0;
 
     function getSupabaseClient() {
-      if (!dbClient) {
-        if (window.supabase && typeof window.supabase.createClient === 'function') {
-          dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        } else if (window.supabaseJs && typeof window.supabaseJs.createClient === 'function') {
-          dbClient = window.supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        }
+      if (!dbClient && window.supabase && typeof window.supabase.createClient === 'function') {
+        dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
       return dbClient;
     }
@@ -287,17 +305,71 @@
       if (client) {
         loadLessons();
       } else {
-        document.getElementById('lessonList').innerHTML = "<p style='color: var(--text-muted); font-size: 0.9rem;'>Connecting to database...</p>";
-        setTimeout(function() {
-          if (getSupabaseClient()) loadLessons();
-        }, 1500);
+        setTimeout(function() { if (getSupabaseClient()) loadLessons(); }, 1000);
       }
 
       document.getElementById("generateBtn").addEventListener("click", handleGenerateClick);
       document.getElementById("backBtn").addEventListener("click", exitQuiz);
       document.getElementById("hintBtn").addEventListener("click", toggleHint);
       document.getElementById("nextBtn").addEventListener("click", nextQuestion);
+      
+      var fileDropzone = document.querySelector(".file-dropzone");
+      var fileInput = document.getElementById("fileInput");
+      
+      fileDropzone.addEventListener("click", function() { fileInput.click(); });
+      fileInput.addEventListener("change", handleFileUpload);
     });
+
+    async function handleFileUpload(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+
+      var fileStatus = document.getElementById("fileStatus");
+      var transcriptBox = document.getElementById("transcript");
+      var titleInput = document.getElementById("lessonTitle");
+
+      fileStatus.innerText = "Reading " + file.name + "...";
+
+      if (!titleInput.value) {
+        titleInput.value = file.name.replace(/\.[^/.]+$/, "");
+      }
+
+      try {
+        if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+          var text = await file.text();
+          transcriptBox.value = text;
+          fileStatus.innerText = "Loaded: " + file.name;
+        } 
+        else if (file.name.endsWith('.docx')) {
+          var arrayBuffer = await file.arrayBuffer();
+          var result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+          transcriptBox.value = result.value;
+          fileStatus.innerText = "Loaded: " + file.name;
+        } 
+        else if (file.name.endsWith('.pdf')) {
+          var arrayBuffer = await file.arrayBuffer();
+          var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          var extractedText = "";
+          
+          for (var i = 1; i <= pdf.numPages; i++) {
+            var page = await pdf.getPage(i);
+            var content = await page.getTextContent();
+            var pageText = content.items.map(function(item) { return item.str; }).join(" ");
+            extractedText += pageText + "\n";
+          }
+          
+          transcriptBox.value = extractedText;
+          fileStatus.innerText = "Loaded: " + file.name;
+        } else {
+          alert("Unsupported file format. Please upload a .pdf, .docx, or .txt file.");
+          fileStatus.innerText = "Or paste your text below directly";
+        }
+      } catch (err) {
+        console.error("File processing error:", err);
+        alert("Failed to read file: " + err.message);
+        fileStatus.innerText = "Error reading file. Try pasting text manually.";
+      }
+    }
 
     function loadLessons() {
       var client = getSupabaseClient();
@@ -313,25 +385,43 @@
           container.innerHTML = res.data.map(function(l) {
             return '<div class="lesson-item">' +
                      '<span class="lesson-title">' + l.title + '</span>' +
-                     '<button class="btn btn-secondary" style="width: auto; padding: 8px 14px; font-size: 0.85rem;" onclick="startQuiz(\'' + l.id + '\')">Start / Resume</button>' +
+                     '<div class="lesson-actions">' +
+                       '<button class="btn btn-secondary" style="padding: 8px 14px; font-size: 0.85rem;" onclick="startQuiz(\'' + l.id + '\')">Start / Resume</button>' +
+                       '<button class="btn btn-danger" onclick="deleteLesson(\'' + l.id + '\', \'' + l.title.replace(/'/g, "\\'") + '\')">🗑️</button>' +
+                     '</div>' +
                    '</div>';
           }).join('');
         });
     }
 
-  function handleGenerateClick() {
+    function deleteLesson(lessonId, title) {
+      if (!confirm("Are you sure you want to delete '" + title + "'?")) return;
+      
+      var client = getSupabaseClient();
+      if (!client) return;
+
+      client.from('lessons').delete().eq('id', lessonId).then(function(res) {
+        if (res.error) {
+          alert("Failed to delete lesson: " + res.error.message);
+        } else {
+          loadLessons();
+        }
+      });
+    }
+
+    function handleGenerateClick() {
       var title = document.getElementById('lessonTitle').value;
       var transcript = document.getElementById('transcript').value;
       var numQuestions = document.getElementById('numQuestions').value;
 
       if (!title || !transcript) {
-        alert("Please enter both a Lesson Title and Transes / Notes Text.");
+        alert("Please enter a Lesson Title and provide Notes/Transes (or upload a file).");
         return;
       }
 
       var client = getSupabaseClient();
       if (!client) {
-        alert("Database SDK failed to connect. Please check your network or ad-blocker settings and refresh.");
+        alert("Database SDK failed to connect. Please refresh.");
         return;
       }
 
@@ -344,7 +434,7 @@
       }).then(function(res) {
         if (res.error || !res.data || !res.data.quiz) {
           console.error("Quiz Error:", res.error);
-          alert("Failed to generate quiz. Check your Supabase Edge Function.");
+          alert("Failed to generate quiz. Please check your Edge Function or API key.");
           genBtn.disabled = false;
           genBtn.innerText = "Generate Interactive Quiz";
           return;
@@ -354,7 +444,7 @@
           { title: title, questions: res.data.quiz }
         ]).select().single().then(function(dbRes) {
           if (dbRes.error) {
-            alert("Error saving lesson: " + dbRes.error.message);
+            alert("Error saving to database: " + dbRes.error.message);
             genBtn.disabled = false;
             genBtn.innerText = "Generate Interactive Quiz";
             return;
@@ -364,6 +454,7 @@
             .then(function() {
               document.getElementById('lessonTitle').value = "";
               document.getElementById('transcript').value = "";
+              document.getElementById('fileStatus').innerText = "Or paste your text below directly";
               genBtn.disabled = false;
               genBtn.innerText = "Generate Interactive Quiz";
               loadLessons();
