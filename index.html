@@ -75,17 +75,7 @@
       --hint-text: #FEF3C7;
     }
 
-    /* Official NLE Exam Skin Override */
-    body.nle-skin {
-      --bg: #E2E8F0;
-      --card-bg: #FFFFFF;
-      --card-border: #94A3B8;
-      --text-main: #0F172A;
-      --primary: #0284C7;
-      --primary-glow: rgba(2, 132, 199, 0.2);
-    }
-
-    * { box-sizing: border-box; transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    * { box-sizing: border-box; transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease; }
 
     body {
       font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -93,18 +83,18 @@
       color: var(--text-main);
       max-width: 820px;
       margin: 0 auto;
-      padding: 2rem 1.25rem 6rem 1.25rem;
+      padding: 2rem 1.25rem;
       line-height: 1.6;
       position: relative;
     }
 
-    /* Ambient Background Glow Spheres */
+    /* Ambient Background Glow */
     body::before, body::after {
       content: ''; position: fixed; width: 300px; height: 300px; border-radius: 50%;
-      filter: blur(90px); z-index: -1; pointer-events: none; opacity: 0.5;
+      filter: blur(90px); z-index: -1; pointer-events: none; opacity: 0.4;
     }
     body::before { top: -50px; left: -50px; background: var(--primary-glow); }
-    body::after { bottom: -50px; right: -50px; background: rgba(56, 189, 248, 0.15); }
+    body::after { bottom: -50px; right: -50px; background: rgba(56, 189, 248, 0.12); }
 
     .header-bar {
       display: flex;
@@ -119,7 +109,17 @@
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
-    /* Glassmorphic SaaS Cards */
+    .theme-toggle-btn {
+      background: var(--secondary-btn);
+      color: var(--secondary-text);
+      border: 1px solid var(--card-border);
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
     .box {
       background: var(--card-bg);
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -127,9 +127,8 @@
       border-radius: 20px;
       padding: 26px;
       margin-bottom: 24px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.03);
     }
-    .box:hover { box-shadow: 0 16px 48px var(--primary-glow); }
 
     label { font-size: 0.88rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px; }
 
@@ -138,9 +137,6 @@
       background-color: var(--option-bg); border: 1px solid var(--option-border);
       border-radius: 12px; padding: 12px 14px; margin-bottom: 16px;
     }
-    input[type="text"]:focus, textarea:focus, select:focus {
-      outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-glow);
-    }
 
     textarea { height: 110px; resize: vertical; }
 
@@ -148,7 +144,6 @@
       border: 2px dashed var(--option-border); background-color: var(--option-bg);
       border-radius: 14px; padding: 18px; text-align: center; margin-bottom: 16px; cursor: pointer;
     }
-    .file-dropzone:hover { border-color: var(--primary); background: rgba(217, 119, 87, 0.05); }
 
     .btn {
       display: inline-flex; align-items: center; justify-content: center; font-family: inherit;
@@ -156,20 +151,19 @@
       background-color: var(--primary); color: #FFFFFF; cursor: pointer; width: 100%;
       box-shadow: 0 4px 16px var(--primary-glow);
     }
-    .btn:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
     .btn:active { transform: scale(0.97); }
     .btn-secondary { width: auto; background-color: var(--secondary-btn); color: var(--secondary-text); box-shadow: none; }
     .btn-danger { width: auto; background-color: var(--danger-btn); color: var(--danger-text); padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer; }
 
     /* Category Badges */
-    .tag { display: inline-block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 8px; margin-bottom: 6px; letter-spacing: 0.03em; }
+    .tag { display: inline-block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 8px; margin-bottom: 6px; }
     .tag-np1 { background: var(--np1-bg); color: var(--np1-text); }
     .tag-np2 { background: var(--np2-bg); color: var(--np2-text); }
     .tag-np3 { background: var(--np3-bg); color: var(--np3-text); }
     .tag-np4 { background: var(--np4-bg); color: var(--np4-text); }
     .tag-np5 { background: var(--np5-bg); color: var(--np5-text); }
 
-    /* Custom Choice Option Cards */
+    /* Choice Option Cards */
     .option-card {
       display: flex; align-items: center; gap: 14px; width: 100%; font-family: inherit; font-size: 0.98rem;
       color: var(--text-main); padding: 16px 20px; margin: 12px 0; text-align: left;
@@ -180,58 +174,46 @@
       width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--option-border);
       display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.75rem; font-weight: 800;
     }
-    .option-card:hover .option-indicator { border-color: var(--primary); color: var(--primary); }
 
     .correct { background-color: var(--correct-bg) !important; border-color: var(--correct-border) !important; color: var(--correct-text) !important; font-weight: 700; }
     .incorrect { background-color: var(--incorrect-bg) !important; border-color: var(--incorrect-border) !important; color: var(--incorrect-text) !important; }
 
-    /* Flashcard 3D Parallax */
+    /* Flashcards */
     .flashcard-container { perspective: 1000px; margin: 20px 0; cursor: pointer; }
     .flashcard {
       width: 100%; min-height: 230px; background: var(--option-bg); border: 2px solid var(--option-border);
       border-radius: 20px; display: flex; align-items: center; justify-content: center;
       padding: 28px; text-align: center; font-size: 1.15rem; font-weight: 700;
-      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; position: relative;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      transition: transform 0.6s ease; transform-style: preserve-3d; position: relative;
     }
     .flashcard.flipped { transform: rotateY(180deg); }
     .flashcard-front, .flashcard-back { backface-visibility: hidden; width: 100%; }
     .flashcard-back { transform: rotateY(180deg); position: absolute; color: var(--primary); }
 
-    /* Animated Slide Motion */
-    .slide-enter { animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    /* Slide Motion */
+    .slide-enter { animation: slideIn 0.3s ease forwards; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(15px); } to { opacity: 1; transform: translateX(0); } }
 
     /* Radial Score Circle */
     .radial-progress { position: relative; width: 130px; height: 130px; margin: 0 auto 16px auto; }
     .radial-progress svg { width: 130px; height: 130px; transform: rotate(-90deg); }
     .radial-progress circle { fill: none; stroke-width: 10; stroke-linecap: round; }
     .radial-progress .bg { stroke: var(--option-border); }
-    .radial-progress .meter { stroke: var(--primary); stroke-dasharray: 339.29; stroke-dashoffset: 339.29; transition: stroke-dashoffset 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
+    .radial-progress .meter { stroke: var(--primary); stroke-dasharray: 339.29; stroke-dashoffset: 339.29; transition: stroke-dashoffset 1.2s ease-out; }
     .radial-progress .number { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.4rem; font-weight: 800; }
 
-    /* Question Grid Drawer */
+    /* Question Drawer */
     .grid-drawer { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border); }
     .grid-item { height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--option-bg); border: 1px solid var(--option-border); font-size: 0.85rem; font-weight: 700; cursor: pointer; }
     .grid-item.answered { background: var(--secondary-btn); color: var(--secondary-text); }
     .grid-item.flagged { border-color: var(--primary); color: var(--primary); font-weight: 800; }
     .grid-item.current { border: 2px solid var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
 
-    /* Floating Action Dock */
-    .floating-dock {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: var(--card-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--card-border); padding: 8px 16px; border-radius: 30px;
-      display: flex; gap: 10px; align-items: center; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15); z-index: 99;
-    }
-    .dock-btn { background: transparent; border: none; color: var(--text-main); padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-    .dock-btn:hover { background: var(--secondary-btn); }
-
     /* Heatmap Bar */
     .heatmap-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 10px; background: var(--option-border); }
     .heatmap-segment { height: 100%; transition: width 0.5s ease; }
 
-    /* Focus View */
+    /* Focus Mode */
     body.focus-mode .box { border: none; box-shadow: none; background: transparent; }
     body.focus-mode .header-bar, body.focus-mode #setup, body.focus-mode #quizControls, body.focus-mode .heatmap-box { display: none !important; }
 
@@ -243,10 +225,9 @@
     .lesson-actions { display: flex; gap: 8px; align-items: center; }
     .hidden { display: none !important; }
 
-    /* Print View */
     @media print {
       body { background: white; color: black; max-width: 100%; padding: 0; }
-      .header-bar, #setup, #quizControls, .btn, #timerDisplay, .floating-dock { display: none !important; }
+      .header-bar, #setup, #quizControls, .btn, #timerDisplay { display: none !important; }
       .box { border: none; box-shadow: none; padding: 0; background: transparent; }
       #summaryView { display: block !important; }
     }
@@ -256,6 +237,7 @@
 
   <div class="header-bar">
     <h1 id="mainHeader">Welcome back, Bazty James!</h1>
+    <button class="theme-toggle-btn" id="themeToggle">🌙 Dark</button>
   </div>
 
   <div id="setup">
@@ -333,6 +315,8 @@
         <button class="btn btn-secondary" id="backBtn">← Back</button>
         <div id="timerDisplay" class="timer-badge hidden">⏱️ <span id="timeRemaining">30</span>s</div>
         <div style="display: flex; gap: 6px;">
+          <button class="btn btn-secondary" id="focusBtn">🎯 Focus View</button>
+          <button class="btn btn-secondary" id="drawerBtn">📊 Drawer</button>
           <button class="btn btn-secondary" id="flagBtn">🚩 Flag</button>
           <button class="btn btn-secondary" id="modeBtn">🎴 Flashcards</button>
         </div>
@@ -400,15 +384,6 @@
     </div>
   </div>
 
-  <!-- Floating Action Dock Hub -->
-  <div class="floating-dock">
-    <button class="dock-btn" id="dockTheme">🌙 Dark</button>
-    <button class="dock-btn" id="dockFocus">🎯 Focus</button>
-    <button class="dock-btn" id="dockVoice">🔊 Audio</button>
-    <button class="dock-btn" id="dockSkin">📋 NLE Skin</button>
-    <button class="dock-btn" id="dockDrawer">📊 Drawer</button>
-  </div>
-
   <script>
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -442,13 +417,9 @@
       document.getElementById("reviewWeakBtn").addEventListener("click", startWeakSpotReview);
       document.getElementById("flagBtn").addEventListener("click", toggleFlagCurrent);
       document.getElementById("printBtn").addEventListener("click", function() { window.print(); });
-
-      // Dock Actions
-      document.getElementById("dockTheme").addEventListener("click", toggleDarkMode);
-      document.getElementById("dockFocus").addEventListener("click", function() { document.body.classList.toggle("focus-mode"); });
-      document.getElementById("dockVoice").addEventListener("click", readQuestionAudio);
-      document.getElementById("dockSkin").addEventListener("click", function() { document.body.classList.toggle("nle-skin"); });
-      document.getElementById("dockDrawer").addEventListener("click", function() { document.getElementById("gridDrawer").classList.toggle("hidden"); });
+      document.getElementById("themeToggle").addEventListener("click", toggleDarkMode);
+      document.getElementById("focusBtn").addEventListener("click", function() { document.body.classList.toggle("focus-mode"); });
+      document.getElementById("drawerBtn").addEventListener("click", function() { document.getElementById("gridDrawer").classList.toggle("hidden"); });
 
       document.getElementById("flashcardContainer").addEventListener("click", function() {
         document.getElementById("flashcard").classList.toggle("flipped");
@@ -463,19 +434,7 @@
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
       var isDark = document.body.classList.contains("dark-mode");
-      document.getElementById("dockTheme").innerText = isDark ? "☀️ Light" : "🌙 Dark";
-    }
-
-    function readQuestionAudio() {
-      if (!('speechSynthesis' in window)) return alert("Voice audio not supported on this browser.");
-      window.speechSynthesis.cancel();
-      if (currentIndex < currentQuestions.length) {
-        var q = currentQuestions[currentIndex];
-        var textToRead = q.question + ". Choices are: " + q.options.join(". ");
-        var utterance = new SpeechSynthesisUtterance(textToRead);
-        utterance.rate = 0.95;
-        window.speechSynthesis.speak(utterance);
-      }
+      document.getElementById("themeToggle").innerText = isDark ? "☀️ Light" : "🌙 Dark";
     }
 
     function getTagClass(cat) {
@@ -746,7 +705,6 @@
     }
 
     function finishQuiz() {
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       document.getElementById('quizView').classList.add('hidden');
       document.getElementById('flashcardView').classList.add('hidden');
       document.getElementById('quizControls').classList.add('hidden');
@@ -841,7 +799,6 @@
 
     function exitQuiz() {
       stopTimer();
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       document.body.classList.remove("focus-mode");
       document.getElementById('mainHeader').innerText = "Welcome back, Bazty James!";
       document.getElementById('quiz').classList.add('hidden');
