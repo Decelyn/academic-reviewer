@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Study Reviewer</title>
+  <!-- Load Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; max-width: 750px; margin: 2rem auto; padding: 0 1rem; color: #333; line-height: 1.5; }
+    h1, h2, h3 { color: #111; }
+    textarea { width: 100%; height: 120px; padding: 8px; box-sizing: border-box; }
+    input[type="text"], select { width: 100%; padding: 8px; margin-top: 4px; margin-bottom: 12px; box-sizing: border-box; }
+    .btn { padding: 10px 16px; margin-top: 10px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; }
+    .btn:hover { background: #1d4ed8; }
+    .btn-secondary { background: #6b7280; margin-right: 8px; }
+    .option { display: block; width: 100%; padding: 12px; margin: 8px 0; text-align: left; border: 1px solid #ccc; border-radius: 4px; background: #f9fafb; cursor: pointer; }
+    .option:hover { background: #f3f4f6; }
+    .correct { background: #d1fae5 !important; border-color: #10b981 !important; font-weight: bold; }
+    .incorrect { background: #fee2e2 !important; border-color: #ef4444 !important; }
+    .box { border: 1px solid #e5e7eb; padding: 16px; border-radius: 6px; margin-bottom: 16px; }
+    .hidden { display: none; }
+    .hint { color: #92400e; background: #fef3c7; padding: 10px; border-radius: 4px; margin-top: 10px; }
+    .feedback { padding: 10px; border-radius: 4px; margin-top: 10px; font-weight: 500; }
+    .lesson-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+  </style>
+</head>
+<body>
+
+  <h1>Interactive Study Reviewer</h1>
+
+  <div id="setup">
+    <div class="box">
+      <h3>Add New Lesson / Transes</h3>
+      <label><b>Lesson Title:</b></label>
+      <input type="text" id="lessonTitle" placeholder="e.g., Biology - Chapter 1 Cell Structure">
+      
+      <label><b>Transes / Notes Text:</b></label>
+      <textarea id="transcript" placeholder="Paste your transcripts or notes here..."></textarea>
+      
+      <label><b>Number of Questions:</b></label>
+      <select id="numQuestions">
+        <option value="10">10 Questions</option>
+        <option value="20">20 Questions</option>
+        <option value="50">50 Questions</option>
+        <option value="100">100 Questions</option>
+      </select>
+      
+      <button class="btn" onclick="generateAndSave()">Generate Interactive Quiz</button>
+    </div>
+
+    <div class="box">
+      <h3>Your Saved Lessons</h3>
+      <div id="lessonList">Loading lessons...</div>
+    </div>
+  </div>
+
+  <div id="quiz" class="hidden">
+    <button class="btn btn-secondary" onclick="exitQuiz()">← Back to Lessons</button>
+    <h2 id="qTitle"></h2>
+    <p id="qText" style="font-size: 1.1rem; font-weight: 600;"></p>
+    <div id="options"></div>
+    <div id="hint" class="hint hidden"></div>
+    <div id="feedback" class="feedback hidden"></div>
+    <br>
+    <button class="btn btn-secondary" onclick="toggleHint()">Toggle Hint</button>
+    <button id="nextBtn" class="btn hidden" onclick="nextQuestion()">Next Question →</button>
+  </div>
+
+  <script>
+    // PRE-FILLED WITH YOUR EXACT SUPABASE CREDENTIALS
+    const SUPABASE_URL = "https://ahswtcanvsljnprksgem.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable__JiMbUYibb3YkSZlyaZVHg_5EaXv-BA";
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentLesson = null;
+    let currentQuestions = [];
+    let currentIndex = 0;
+
+    async function loadLessons() {
+      const { data, error } = await supabase.from('lessons').select('id, title, created_at').order('created_at', { ascending: false });
+      const container = document.getElementById('lessonList');
+      
+      if (error || !data || data.length === 0) {
+        container.innerHTML = "<p>No saved lessons found.</p>";
+        return;
+      }
+      
+      container.innerHTML = data.map(l => `
+        <div class="lesson-item">
+          <span><b>${l.title}</b></span>
+          <button class="btn" onclick="startQuiz('${l.id}')">Start / Resume</button>
+        </div>
+      `).join('');
+    }
+
+    async function generateAndSave() {
+      const title = document.getElementById('lessonTitle').value;
+      const transcript = document.getElementById('transcript').value;
+      const numQuestions = document.getElementById('numQuestions').value;
+
+      if (!title || !transcript) return alert("Please fill in both the title and text transcript.");
+
+      alert("Generating quiz... this can take up to 20-30 seconds depending on question count.");
+
+      // Call Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('generate-quiz', {
+        body: { transcript, numQuestions }
+      });
+
+      if (error || !data || !data.quiz) {
+        console.error(error);
+        return alert("Failed to generate quiz. Make sure your Edge Function and GEMINI_API_KEY secret are configured correctly.");
+      }
+
+      // Save lesson and question bank to Database
+      const { data: lessonData, error: dbError } = await supabase.from('lessons').insert([
+        { title, questions: data.quiz }
+      ]).select().single();
+
+      if (dbError) return alert("Error saving lesson to database: " + dbError.message);
+
+      // Initialize progress
+      await supabase.from('progress').insert([{ lesson_id: lessonData.id, current_question_index: 0 }]);
+
+      document.getElementById('lessonTitle').value = "";
+      document.getElementById('transcript').value = "";
+      loadLessons();
+      startQuiz(lessonData.id);
+    }
+
+    async function startQuiz(lessonId) {
+      const { data: lesson } = await supabase.from('lessons').select('*').eq('id', lessonId).single();
+      const { data: prog } = await supabase.from('progress').select('*').eq('lesson_id', lessonId).single();
+
+      currentLesson = lesson;
+      currentQuestions = lesson.questions;
+      currentIndex = prog ? prog.current_question_index : 0;
+
+      document.getElementById('setup').classList.add('hidden');
+      document.getElementById('quiz').classList.remove('hidden');
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      if (currentIndex >= currentQuestions.length) {
+        document.getElementById('qTitle').innerText = currentLesson.title;
+        document.getElementById('qText').innerText = "🎉 Quiz Completed! You've reviewed all material for this lesson.";
+        document.getElementById('options').innerHTML = "";
+        document.getElementById('nextBtn').classList.add('hidden');
+        return;
+      }
+
+      const q = currentQuestions[currentIndex];
+      document.getElementById('qTitle').innerText = `${currentLesson.title} (${currentIndex + 1}/${currentQuestions.length})`;
+      document.getElementById('qText').innerText = q.question;
+      
+      const hintBox = document.getElementById('hint');
+      hintBox.innerText = "💡 Hint: " + q.hint;
+      hintBox.classList.add('hidden');
+      
+      document.getElementById('feedback').classList.add('hidden');
+      document.getElementById('nextBtn').classList.add('hidden');
+
+      const optsDiv = document.getElementById('options');
+      optsDiv.innerHTML = q.options.map((opt, i) => `
+        <button class="option" onclick="checkAnswer(${i})">${opt}</button>
+      `).join('');
+    }
+
+    async function checkAnswer(selectedIdx) {
+      const q = currentQuestions[currentIndex];
+      const btns = document.querySelectorAll('.option');
+      
+      btns.forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === q.answer) btn.classList.add('correct');
+        if (i === selectedIdx && i !== q.answer) btn.classList.add('incorrect');
+      });
+
+      const fb = document.getElementById('feedback');
+      fb.classList.remove('hidden');
+      
+      if (selectedIdx === q.answer) {
+        fb.innerText = "✅ Correct! " + q.explanation;
+        fb.style.background = "#d1fae5";
+        fb.style.color = "#065f46";
+      } else {
+        fb.innerText = "❌ Incorrect. " + q.explanation;
+        fb.style.background = "#fee2e2";
+        fb.style.color = "#991b1b";
+      }
+
+      document.getElementById('nextBtn').classList.remove('hidden');
+
+      // Update progress in database
+      await supabase.from('progress').upsert({
+        lesson_id: currentLesson.id,
+        current_question_index: currentIndex + 1
+      });
+    }
+
+    function nextQuestion() {
+      currentIndex++;
+      renderQuestion();
+    }
+
+    function toggleHint() {
+      document.getElementById('hint').classList.toggle('hidden');
+    }
+
+    function exitQuiz() {
+      document.getElementById('quiz').classList.add('hidden');
+      document.getElementById('setup').classList.remove('hidden');
+      loadLessons();
+    }
+
+    loadLessons();
+  </script>
+</body>
+</html>
