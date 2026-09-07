@@ -238,7 +238,7 @@
         <option value="100">100 Questions</option>
       </select>
       
-      <button class="btn" id="generateBtn" onclick="generateAndSave()">Generate Interactive Quiz</button>
+      <button class="btn" id="generateBtn" type="button" onclick="handleGenerateClick()">Generate Interactive Quiz</button>
     </div>
 
     <div class="box">
@@ -269,62 +269,90 @@
     const SUPABASE_URL = "https://ahswtcanvsljnprksgem.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable__JiMbUYibb3YkSZlyaZVHg_5EaXv-BA";
     
+    // Initialize Supabase immediately
     let supabase = null;
+    try {
+      if (window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (e) {
+      console.error("Supabase Init Error:", e);
+    }
+
     let currentLesson = null;
     let currentQuestions = [];
     let currentIndex = 0;
 
-    window.addEventListener('DOMContentLoaded', () => {
-      if (window.supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window.onload = function() {
+      if (supabase) {
         loadLessons();
       } else {
-        console.error("Supabase SDK failed to load.");
+        document.getElementById('lessonList').innerHTML = "<p style='color: var(--text-muted);'>Database SDK not initialized. Please refresh.</p>";
       }
-    });
+    };
 
     async function loadLessons() {
       if (!supabase) return;
-      const { data, error } = await supabase.from('lessons').select('id, title, created_at').order('created_at', { ascending: false });
-      const container = document.getElementById('lessonList');
-      
-      if (error || !data || data.length === 0) {
-        container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.9rem;'>No saved lessons found.</p>";
-        return;
+      try {
+        const { data, error } = await supabase.from('lessons').select('id, title, created_at').order('created_at', { ascending: false });
+        const container = document.getElementById('lessonList');
+        
+        if (error || !data || data.length === 0) {
+          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.9rem;'>No saved lessons found.</p>";
+          return;
+        }
+        
+        container.innerHTML = data.map(l => `
+          <div class="lesson-item">
+            <span class="lesson-title">${l.title}</span>
+            <button class="btn btn-secondary" style="width: auto; padding: 8px 14px; font-size: 0.85rem;" onclick="startQuiz('${l.id}')">Start / Resume</button>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error("Error loading lessons:", err);
       }
-      
-      container.innerHTML = data.map(l => `
-        <div class="lesson-item">
-          <span class="lesson-title">${l.title}</span>
-          <button class="btn btn-secondary" style="width: auto; padding: 8px 14px; font-size: 0.85rem;" onclick="startQuiz('${l.id}')">Start / Resume</button>
-        </div>
-      `).join('');
     }
 
-    async function generateAndSave() {
+    async function handleGenerateClick() {
       const title = document.getElementById('lessonTitle').value;
       const transcript = document.getElementById('transcript').value;
       const numQuestions = document.getElementById('numQuestions').value;
 
-      if (!title || !transcript) return alert("Please fill in both the title and text transcript.");
+      if (!title || !transcript) {
+        alert("Please enter both a Lesson Title and Transes / Notes Text before generating.");
+        return;
+      }
+
+      if (!supabase) {
+        alert("Database connection failed. Please check your internet connection and refresh.");
+        return;
+      }
 
       const genBtn = document.getElementById('generateBtn');
       genBtn.disabled = true;
-      genBtn.innerText = "Generating Quiz... Please wait";
+      genBtn.innerText = "Generating Quiz... (Please wait 15-30s)";
 
       try {
         const { data, error } = await supabase.functions.invoke('generate-quiz', {
           body: { transcript, numQuestions }
         });
 
-        if (error || !data || !data.quiz) {
-          console.error(error);
-          alert("Failed to generate quiz. Check that your GEMINI_API_KEY secret is set in Supabase.");
+        if (error) {
+          console.error("Edge Function Error:", error);
+          alert("Edge Function Error: " + (error.message || JSON.stringify(error)));
           genBtn.disabled = false;
           genBtn.innerText = "Generate Interactive Quiz";
           return;
         }
 
+        if (!data || !data.quiz) {
+          alert("Received empty response from quiz generator. Please try again.");
+          genBtn.disabled = false;
+          genBtn.innerText = "Generate Interactive Quiz";
+          return;
+        }
+
+        // Save to Database
         const { data: lessonData, error: dbError } = await supabase.from('lessons').insert([
           { title, questions: data.quiz }
         ]).select().single();
@@ -347,7 +375,7 @@
 
       } catch (err) {
         console.error(err);
-        alert("An error occurred: " + err.message);
+        alert("System Error: " + err.message);
         genBtn.disabled = false;
         genBtn.innerText = "Generate Interactive Quiz";
       }
