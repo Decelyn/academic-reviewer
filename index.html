@@ -3,42 +3,234 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Study Reviewer</title>
+  <title>Cel's Interactive Reviewer & Guide</title>
+  
+  <!-- Load Google Fonts (Plus Jakarta Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
   <!-- Load Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; max-width: 750px; margin: 2rem auto; padding: 0 1rem; color: #333; line-height: 1.5; }
-    h1, h2, h3 { color: #111; }
-    textarea { width: 100%; height: 120px; padding: 8px; box-sizing: border-box; }
-    input[type="text"], select { width: 100%; padding: 8px; margin-top: 4px; margin-bottom: 12px; box-sizing: border-box; }
-    .btn { padding: 10px 16px; margin-top: 10px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; }
-    .btn:hover { background: #1d4ed8; }
-    .btn-secondary { background: #6b7280; margin-right: 8px; }
-    .option { display: block; width: 100%; padding: 12px; margin: 8px 0; text-align: left; border: 1px solid #ccc; border-radius: 4px; background: #f9fafb; cursor: pointer; }
-    .option:hover { background: #f3f4f6; }
-    .correct { background: #d1fae5 !important; border-color: #10b981 !important; font-weight: bold; }
-    .incorrect { background: #fee2e2 !important; border-color: #ef4444 !important; }
-    .box { border: 1px solid #e5e7eb; padding: 16px; border-radius: 6px; margin-bottom: 16px; }
+    :root {
+      --bg: #FAF7F2;            /* Soft warm cream background */
+      --card-bg: #FFFFFF;       /* Crisp warm white card surface */
+      --card-border: #EFECE6;   /* Subtle sand border */
+      --text-main: #2D2A26;     /* Deep warm charcoal for primary text */
+      --text-muted: #736E65;    /* Soft taupe for body/secondary text */
+      --primary: #D97757;       /* Soft terracotta accent */
+      --primary-hover: #C56343; /* Rich warm terracotta on hover */
+      --secondary-btn: #EFECE6; /* Light warm gray button */
+      --secondary-text: #4A4640;
+      --option-bg: #FCFBFA;     /* Gentle option card tone */
+      --option-border: #E8E4DD;
+      
+      --correct-bg: #EAEFD9;    /* Soft sage green */
+      --correct-border: #A1B872;
+      --correct-text: #32471B;
+      
+      --incorrect-bg: #F9EAE1;  /* Gentle blush rose */
+      --incorrect-border: #E4A18B;
+      --incorrect-text: #632214;
+      
+      --hint-bg: #FAF1DD;       /* Soft warm butter yellow */
+      --hint-text: #705118;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      max-width: 750px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+      margin-bottom: 1.75rem;
+      text-align: center;
+    }
+
+    h2, h3 {
+      font-weight: 600;
+      color: var(--text-main);
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.01em;
+    }
+
+    .box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+
+    label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      background-color: #FAF9F6;
+      border: 1px solid var(--option-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      transition: all 0.2s ease;
+    }
+
+    textarea {
+      height: 130px;
+      resize: vertical;
+    }
+
+    input[type="text"]:focus, textarea:focus, select:focus {
+      outline: none;
+      background-color: #FFFFFF;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.15);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+
+    .btn:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      width: auto;
+      background-color: var(--secondary-btn);
+      color: var(--secondary-text);
+      margin-right: 10px;
+    }
+
+    .btn-secondary:hover {
+      background-color: #E2DFD7;
+    }
+
+    .option {
+      display: block;
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      padding: 14px 18px;
+      margin: 10px 0;
+      text-align: left;
+      border: 1px solid var(--option-border);
+      border-radius: 12px;
+      background: var(--option-bg);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .option:hover {
+      border-color: var(--primary);
+      background: #FFFFFF;
+      transform: translateY(-1px);
+    }
+
+    .correct {
+      background-color: var(--correct-bg) !important;
+      border-color: var(--correct-border) !important;
+      color: var(--correct-text) !important;
+      font-weight: 600;
+    }
+
+    .incorrect {
+      background-color: var(--incorrect-bg) !important;
+      border-color: var(--incorrect-border) !important;
+      color: var(--incorrect-text) !important;
+    }
+
+    .hint {
+      color: var(--hint-text);
+      background-color: var(--hint-bg);
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-top: 14px;
+      font-size: 0.9rem;
+    }
+
+    .feedback {
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-top: 14px;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .lesson-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .lesson-item:last-child {
+      border-bottom: none;
+    }
+
+    .lesson-title {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
     .hidden { display: none; }
-    .hint { color: #92400e; background: #fef3c7; padding: 10px; border-radius: 4px; margin-top: 10px; }
-    .feedback { padding: 10px; border-radius: 4px; margin-top: 10px; font-weight: 500; }
-    .lesson-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
   </style>
 </head>
 <body>
 
-  <h1>Interactive Study Reviewer</h1>
+  <h1>Cel's Interactive Reviewer & Guide</h1>
 
   <div id="setup">
     <div class="box">
       <h3>Add New Lesson / Transes</h3>
-      <label><b>Lesson Title:</b></label>
+      
+      <label for="lessonTitle">Lesson Title</label>
       <input type="text" id="lessonTitle" placeholder="e.g., Biology - Chapter 1 Cell Structure">
       
-      <label><b>Transes / Notes Text:</b></label>
+      <label for="transcript">Transes / Notes Text</label>
       <textarea id="transcript" placeholder="Paste your transcripts or notes here..."></textarea>
       
-      <label><b>Number of Questions:</b></label>
+      <label for="numQuestions">Number of Questions</label>
       <select id="numQuestions">
         <option value="10">10 Questions</option>
         <option value="20">20 Questions</option>
@@ -51,20 +243,26 @@
 
     <div class="box">
       <h3>Your Saved Lessons</h3>
-      <div id="lessonList">Loading lessons...</div>
+      <div id="lessonList">Loading saved lessons...</div>
     </div>
   </div>
 
   <div id="quiz" class="hidden">
-    <button class="btn btn-secondary" onclick="exitQuiz()">← Back to Lessons</button>
-    <h2 id="qTitle"></h2>
-    <p id="qText" style="font-size: 1.1rem; font-weight: 600;"></p>
-    <div id="options"></div>
-    <div id="hint" class="hint hidden"></div>
-    <div id="feedback" class="feedback hidden"></div>
-    <br>
-    <button class="btn btn-secondary" onclick="toggleHint()">Toggle Hint</button>
-    <button id="nextBtn" class="btn hidden" onclick="nextQuestion()">Next Question →</button>
+    <div class="box">
+      <button class="btn btn-secondary" onclick="exitQuiz()">← Back to Lessons</button>
+      <h2 id="qTitle" style="margin-top: 16px;"></h2>
+      <p id="qText" style="font-size: 1.05rem; font-weight: 600; color: var(--text-main); margin-top: 16px;"></p>
+      
+      <div id="options"></div>
+      
+      <div id="hint" class="hint hidden"></div>
+      <div id="feedback" class="feedback hidden"></div>
+      
+      <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <button class="btn btn-secondary" onclick="toggleHint()">Toggle Hint</button>
+        <button id="nextBtn" class="btn hidden" onclick="nextQuestion()">Next Question →</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -83,14 +281,14 @@
       const container = document.getElementById('lessonList');
       
       if (error || !data || data.length === 0) {
-        container.innerHTML = "<p>No saved lessons found.</p>";
+        container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.9rem;'>No saved lessons found.</p>";
         return;
       }
       
       container.innerHTML = data.map(l => `
         <div class="lesson-item">
-          <span><b>${l.title}</b></span>
-          <button class="btn" onclick="startQuiz('${l.id}')">Start / Resume</button>
+          <span class="lesson-title">${l.title}</span>
+          <button class="btn btn-secondary" style="width: auto; padding: 8px 14px; font-size: 0.85rem;" onclick="startQuiz('${l.id}')">Start / Resume</button>
         </div>
       `).join('');
     }
@@ -184,12 +382,12 @@
       
       if (selectedIdx === q.answer) {
         fb.innerText = "✅ Correct! " + q.explanation;
-        fb.style.background = "#d1fae5";
-        fb.style.color = "#065f46";
+        fb.style.backgroundColor = "var(--correct-bg)";
+        fb.style.color = "var(--correct-text)";
       } else {
         fb.innerText = "❌ Incorrect. " + q.explanation;
-        fb.style.background = "#fee2e2";
-        fb.style.color = "#991b1b";
+        fb.style.backgroundColor = "var(--incorrect-bg)";
+        fb.style.color = "var(--incorrect-text)";
       }
 
       document.getElementById('nextBtn').classList.remove('hidden');
