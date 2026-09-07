@@ -10,17 +10,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Supabase & Parser SDKs -->
+  <!-- External Libraries -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   
   <style>
     :root {
       --bg: #FAF7F2;
-      --card-bg: #FFFFFF;
-      --card-border: #EFECE6;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --card-border: rgba(239, 236, 230, 0.8);
       --text-main: #2D2A26;
       --text-muted: #736E65;
       --primary: #D97757;
@@ -39,70 +40,107 @@
       --incorrect-text: #632214;
       --hint-bg: #FAF1DD;
       --hint-text: #705118;
+
+      /* NP Badges */
+      --np1-bg: #E0F2FE; --np1-text: #0369A1;
+      --np2-bg: #FFE4E6; --np2-text: #BE123C;
+      --np3-bg: #F3E8FF; --np3-text: #6B21A8;
+      --np4-bg: #DCFCE7; --np4-text: #15803D;
+      --np5-bg: #FEF3C7; --np5-text: #B45309;
     }
 
-    * { box-sizing: border-box; }
+    body.dark-mode {
+      --bg: #121826;
+      --card-bg: rgba(30, 41, 59, 0.85);
+      --card-border: rgba(51, 65, 85, 0.8);
+      --text-main: #F1F5F9;
+      --text-muted: #94A3B8;
+      --primary: #E07A5F;
+      --primary-hover: #F28F75;
+      --secondary-btn: #334155;
+      --secondary-text: #CBD5E1;
+      --danger-btn: #7F1D1D;
+      --danger-text: #FECACA;
+      --option-bg: #1E293B;
+      --option-border: #334155;
+      --correct-bg: #14532D;
+      --correct-border: #22C55E;
+      --correct-text: #DCFCE7;
+      --incorrect-bg: #7F1D1D;
+      --incorrect-border: #EF4444;
+      --incorrect-text: #FEE2E2;
+      --hint-bg: #451A03;
+      --hint-text: #FEF3C7;
+    }
+
+    * { box-sizing: border-box; transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease; }
 
     body {
       font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
       background-color: var(--bg);
       color: var(--text-main);
-      max-width: 780px;
+      max-width: 820px;
       margin: 0 auto;
-      padding: 2.5rem 1.25rem;
+      padding: 2rem 1.25rem;
       line-height: 1.6;
     }
 
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
     h1 {
-      font-size: 1.85rem;
+      font-size: 1.75rem;
       font-weight: 700;
-      color: var(--text-main);
       letter-spacing: -0.02em;
-      margin-bottom: 1.75rem;
-      text-align: center;
+      margin: 0;
     }
 
-    h2, h3, h4 {
+    .theme-toggle-btn {
+      background: var(--secondary-btn);
+      color: var(--secondary-text);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 20px;
+      cursor: pointer;
       font-weight: 600;
-      color: var(--text-main);
-      margin-top: 0;
-      margin-bottom: 0.75rem;
+      font-size: 0.85rem;
     }
 
+    /* Glassmorphic Cards */
     .box {
       background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border: 1px solid var(--card-border);
       border-radius: 16px;
       padding: 24px;
       margin-bottom: 24px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
     }
 
-    label {
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      display: block;
-      margin-bottom: 6px;
-    }
+    label { font-size: 0.88rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px; }
 
-    input[type="text"], textarea, select, input[type="file"] {
+    input[type="text"], textarea, select {
       width: 100%;
       font-family: inherit;
       font-size: 0.95rem;
       color: var(--text-main);
-      background-color: #FAF9F6;
+      background-color: var(--option-bg);
       border: 1px solid var(--option-border);
       border-radius: 10px;
       padding: 12px 14px;
       margin-bottom: 16px;
     }
 
-    textarea { height: 120px; resize: vertical; }
+    textarea { height: 110px; resize: vertical; }
 
     .file-dropzone {
       border: 2px dashed var(--option-border);
-      background-color: #FAF9F6;
+      background-color: var(--option-bg);
       border-radius: 12px;
       padding: 16px;
       text-align: center;
@@ -123,39 +161,24 @@
       background-color: var(--primary);
       color: #FFFFFF;
       cursor: pointer;
-      transition: all 0.2s ease;
       width: 100%;
     }
-
-    .btn:hover { background-color: var(--primary-hover); }
+    .btn:active { transform: scale(0.98); }
     .btn-secondary { width: auto; background-color: var(--secondary-btn); color: var(--secondary-text); }
-    .btn-secondary:hover { background-color: #E2DFD7; }
     .btn-danger { width: auto; background-color: var(--danger-btn); color: var(--danger-text); padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer; }
 
-    .option {
-      display: block;
-      width: 100%;
-      font-family: inherit;
-      font-size: 0.95rem;
-      color: var(--text-main);
-      padding: 14px 18px;
-      margin: 10px 0;
-      text-align: left;
-      border: 1px solid var(--option-border);
-      border-radius: 12px;
-      background: var(--option-bg);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .option:hover { border-color: var(--primary); background: #FFFFFF; }
-    .correct { background-color: var(--correct-bg) !important; border-color: var(--correct-border) !important; color: var(--correct-text) !important; font-weight: 600; }
-    .incorrect { background-color: var(--incorrect-bg) !important; border-color: var(--incorrect-border) !important; color: var(--incorrect-text) !important; }
+    /* Category Badges */
+    .tag { display: inline-block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; margin-bottom: 6px; }
+    .tag-np1 { background: var(--np1-bg); color: var(--np1-text); }
+    .tag-np2 { background: var(--np2-bg); color: var(--np2-text); }
+    .tag-np3 { background: var(--np3-bg); color: var(--np3-text); }
+    .tag-np4 { background: var(--np4-bg); color: var(--np4-text); }
+    .tag-np5 { background: var(--np5-bg); color: var(--np5-text); }
 
     /* Flashcard Styles */
     .flashcard-container { perspective: 1000px; margin: 20px 0; cursor: pointer; }
     .flashcard {
-      width: 100%; min-height: 200px; background: #FAF9F6; border: 2px solid var(--option-border);
+      width: 100%; min-height: 220px; background: var(--option-bg); border: 2px solid var(--option-border);
       border-radius: 16px; display: flex; align-items: center; justify-content: center;
       padding: 24px; text-align: center; font-size: 1.15rem; font-weight: 600;
       transition: transform 0.6s; transform-style: preserve-3d; position: relative;
@@ -164,23 +187,95 @@
     .flashcard-front, .flashcard-back { backface-visibility: hidden; width: 100%; }
     .flashcard-back { transform: rotateY(180deg); position: absolute; color: var(--primary); }
 
-    /* Tags & Progress Bar */
-    .tag { display: inline-block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; background: var(--secondary-btn); color: var(--secondary-text); margin-bottom: 6px; }
-    .progress-bar-bg { width: 100%; height: 8px; background: var(--option-border); border-radius: 4px; overflow: hidden; margin-top: 6px; }
-    .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
-    .timer-badge { font-weight: 700; color: var(--danger-text); background: var(--danger-btn); padding: 4px 10px; border-radius: 8px; font-size: 0.9rem; }
+    /* Radial Progress Score Ring */
+    .radial-progress {
+      position: relative; width: 120px; height: 120px; margin: 0 auto 16px auto;
+    }
+    .radial-progress svg { width: 120px; height: 120px; transform: rotate(-90deg); }
+    .radial-progress circle {
+      fill: none; stroke-width: 10; stroke-linecap: round;
+    }
+    .radial-progress .bg { stroke: var(--option-border); }
+    .radial-progress .meter {
+      stroke: var(--primary); stroke-dasharray: 339.29; stroke-dashoffset: 339.29;
+      transition: stroke-dashoffset 1.2s ease-out;
+    }
+    .radial-progress .number {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 1.3rem; font-weight: 700;
+    }
+
+    /* Question Grid Drawer */
+    .grid-drawer {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 8px;
+      margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--card-border);
+    }
+    .grid-item {
+      height: 36px; display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; background: var(--option-bg); border: 1px solid var(--option-border);
+      font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    }
+    .grid-item.answered { background: var(--secondary-btn); color: var(--secondary-text); }
+    .grid-item.flagged { border-color: var(--primary); color: var(--primary); font-weight: 700; }
+    .grid-item.current { border: 2px solid var(--primary); }
+
+    /* Subject Heatmap */
+    .heatmap-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 8px; background: var(--option-border); }
+    .heatmap-segment { height: 100%; transition: width 0.5s ease; }
+
+    /* Focus Mode */
+    body.focus-mode .box { border: none; box-shadow: none; background: transparent; }
+    body.focus-mode .header-bar, body.focus-mode #setup, body.focus-mode #quizControls { display: none !important; }
+
+    .option {
+      display: block; width: 100%; font-family: inherit; font-size: 0.95rem; color: var(--text-main);
+      padding: 14px 18px; margin: 10px 0; text-align: left; border: 1px solid var(--option-border);
+      border-radius: 12px; background: var(--option-bg); cursor: pointer;
+    }
+    .option:hover { border-color: var(--primary); }
+    .option:active { transform: scale(0.99); }
+    .correct { background-color: var(--correct-bg) !important; border-color: var(--correct-border) !important; color: var(--correct-text) !important; font-weight: 600; }
+    .incorrect { background-color: var(--incorrect-bg) !important; border-color: var(--incorrect-border) !important; color: var(--incorrect-text) !important; }
+
+    .hint { color: var(--hint-text); background-color: var(--hint-bg); padding: 14px 16px; border-radius: 10px; margin-top: 14px; font-size: 0.9rem; }
+    .feedback { padding: 14px 16px; border-radius: 10px; margin-top: 14px; font-size: 0.95rem; font-weight: 500; }
 
     .lesson-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--card-border); }
     .lesson-item:last-child { border-bottom: none; }
     .lesson-actions { display: flex; gap: 8px; align-items: center; }
-    .hidden { display: none; }
+    .hidden { display: none !important; }
+
+    /* Print View Styles */
+    @media print {
+      body { background: white; color: black; max-width: 100%; padding: 0; }
+      .header-bar, #setup, #quizControls, .btn, #timerDisplay, #modeBtn, #drawerToggleBtn, .grid-drawer { display: none !important; }
+      .box { border: none; box-shadow: none; padding: 0; background: transparent; }
+      #summaryView { display: block !important; }
+    }
   </style>
 </head>
 <body>
 
-  <h1 id="mainHeader">Welcome back, Bazty James!</h1>
+  <div class="header-bar">
+    <h1 id="mainHeader">Welcome back, Bazty James!</h1>
+    <button class="theme-toggle-btn" id="themeToggle">🌙 Midnight</button>
+  </div>
 
   <div id="setup">
+    <!-- Subject Mastery Heatmap -->
+    <div class="box">
+      <h3>Subject Mastery Analytics</h3>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">Overall Performance Across Nursing Practice Subjects</div>
+      <div class="heatmap-bar" id="heatmapBar"></div>
+      <div style="display: flex; gap: 12px; font-size: 0.72rem; margin-top: 8px; flex-wrap: wrap;" id="heatmapLegend">
+        <span style="color: var(--np1-text);">NP I</span>
+        <span style="color: var(--np2-text);">NP II</span>
+        <span style="color: var(--np3-text);">NP III</span>
+        <span style="color: var(--np4-text);">NP IV</span>
+        <span style="color: var(--np5-text);">NP V</span>
+      </div>
+    </div>
+
     <div class="box">
       <h3>Add New Lesson / Transes</h3>
       
@@ -237,11 +332,13 @@
 
   <div id="quiz" class="hidden">
     <div class="box">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
         <button class="btn btn-secondary" id="backBtn">← Back</button>
         <div id="timerDisplay" class="timer-badge hidden">⏱️ <span id="timeRemaining">30</span>s</div>
-        <div>
-          <button class="btn btn-secondary" id="modeBtn">Flip to Flashcards 🎴</button>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn btn-secondary" id="focusBtn">🎯 Focus View</button>
+          <button class="btn btn-secondary" id="flagBtn">🚩 Flag</button>
+          <button class="btn btn-secondary" id="modeBtn">🎴 Flashcards</button>
         </div>
       </div>
 
@@ -274,21 +371,37 @@
 
       <!-- End of Lesson Review Sheet View -->
       <div id="summaryView" class="hidden">
-        <h3 style="color: var(--primary);">🎉 Lesson Complete!</h3>
-        <p id="scoreSummary" style="font-size: 1.1rem; font-weight: 600;"></p>
+        <div class="radial-progress">
+          <svg>
+            <circle class="bg" cx="60" cy="60" r="54"></circle>
+            <circle class="meter" id="scoreMeter" cx="60" cy="60" r="54"></circle>
+          </svg>
+          <div class="number" id="radialPct">0%</div>
+        </div>
+
+        <h3 style="text-align: center; color: var(--primary);">🎉 Lesson Complete!</h3>
+        <p id="scoreSummary" style="font-size: 1.05rem; text-align: center; font-weight: 600;"></p>
+        <p id="timePaceSummary" style="font-size: 0.88rem; text-align: center; color: var(--text-muted); margin-bottom: 20px;"></p>
         
-        <div style="margin: 20px 0; background: #FAF9F6; border: 1px solid var(--option-border); padding: 18px; border-radius: 12px;">
+        <div style="margin: 20px 0; background: var(--option-bg); border: 1px solid var(--option-border); padding: 18px; border-radius: 12px;">
           <h4>📌 Key Concept Summary Sheet</h4>
           <ul id="summaryList" style="padding-left: 20px; color: var(--text-main);"></ul>
         </div>
 
-        <button class="btn btn-secondary" id="reviewWeakBtn" style="margin-top: 10px; width: 100%;">⚠️ Review Missed Questions Deck</button>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button class="btn btn-secondary" id="reviewWeakBtn" style="flex: 1;">⚠️ Review Missed Questions</button>
+          <button class="btn btn-secondary" id="printBtn" style="flex: 1;">🖨️ Print Summary</button>
+        </div>
       </div>
 
       <div style="margin-top: 20px; display: flex; gap: 10px;" id="quizControls">
         <button class="btn btn-secondary" id="hintBtn">Toggle Hint</button>
         <button id="nextBtn" class="btn hidden">Next Question →</button>
       </div>
+
+      <!-- Question Drawer -->
+      <button class="btn btn-secondary" id="drawerToggleBtn" style="margin-top: 16px; width: 100%;">📊 Question Navigation Drawer</button>
+      <div class="grid-drawer hidden" id="gridDrawer"></div>
     </div>
   </div>
 
@@ -302,6 +415,7 @@
     
     var dbClient = null, currentLesson = null, currentQuestions = [], currentIndex = 0;
     var isFlashcardMode = false, score = 0, missedIndexes = [], timerInterval = null, timeLeft = 30;
+    var flaggedIndexes = [], questionStartTimes = [], totalTimeSpentSec = 0;
 
     function getSupabaseClient() {
       if (!dbClient && window.supabase && typeof window.supabase.createClient === 'function') {
@@ -312,8 +426,8 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       var client = getSupabaseClient();
-      if (client) loadLessons();
-      else setTimeout(function() { if (getSupabaseClient()) loadLessons(); }, 1000);
+      if (client) { loadLessons(); renderHeatmap(); }
+      else setTimeout(function() { if (getSupabaseClient()) { loadLessons(); renderHeatmap(); } }, 1000);
 
       document.getElementById("generateBtn").addEventListener("click", handleGenerateClick);
       document.getElementById("backBtn").addEventListener("click", exitQuiz);
@@ -322,7 +436,12 @@
       document.getElementById("modeBtn").addEventListener("click", toggleMode);
       document.getElementById("filterCategory").addEventListener("change", loadLessons);
       document.getElementById("reviewWeakBtn").addEventListener("click", startWeakSpotReview);
-      
+      document.getElementById("themeToggle").addEventListener("click", toggleDarkMode);
+      document.getElementById("focusBtn").addEventListener("click", function() { document.body.classList.toggle("focus-mode"); });
+      document.getElementById("flagBtn").addEventListener("click", toggleFlagCurrent);
+      document.getElementById("drawerToggleBtn").addEventListener("click", function() { document.getElementById("gridDrawer").classList.toggle("hidden"); });
+      document.getElementById("printBtn").addEventListener("click", function() { window.print(); });
+
       document.getElementById("flashcardContainer").addEventListener("click", function() {
         document.getElementById("flashcard").classList.toggle("flipped");
       });
@@ -332,6 +451,21 @@
       fileDropzone.addEventListener("click", function() { fileInput.click(); });
       fileInput.addEventListener("change", handleFileUpload);
     });
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+      var isDark = document.body.classList.contains("dark-mode");
+      document.getElementById("themeToggle").innerText = isDark ? "☀️ Light Mode" : "🌙 Midnight Mode";
+    }
+
+    function getTagClass(cat) {
+      if (cat === "Nursing Practice I") return "tag-np1";
+      if (cat === "Nursing Practice II") return "tag-np2";
+      if (cat === "Nursing Practice III") return "tag-np3";
+      if (cat === "Nursing Practice IV") return "tag-np4";
+      if (cat === "Nursing Practice V") return "tag-np5";
+      return "tag-np1";
+    }
 
     async function handleFileUpload(event) {
       var file = event.target.files[0];
@@ -366,9 +500,7 @@
           transcriptBox.value = await file.text();
         }
         fileStatus.innerText = "Loaded: " + file.name;
-      } catch (err) {
-        alert("File error: " + err.message);
-      }
+      } catch (err) { alert("File error: " + err.message); }
     }
 
     function loadLessons() {
@@ -393,10 +525,11 @@
           container.innerHTML = res.data.map(function(l) {
             var prog = progMap[l.id] || { best_score: 0, current_question_index: 0, total_questions: 10 };
             var pct = prog.total_questions ? Math.round((prog.best_score / prog.total_questions) * 100) : 0;
+            var tagClass = getTagClass(l.category || "Nursing Practice I");
             
             return '<div class="lesson-item">' +
                      '<div>' +
-                       '<span class="tag">' + (l.category || 'Nursing Practice I') + '</span>' +
+                       '<span class="tag ' + tagClass + '">' + (l.category || 'Nursing Practice I') + '</span>' +
                        '<div class="lesson-title">' + l.title + '</div>' +
                        '<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">Best Score: ' + pct + '%</div>' +
                        '<div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ' + pct + '%;"></div></div>' +
@@ -407,6 +540,40 @@
                      '</div>' +
                    '</div>';
           }).join('');
+        });
+      });
+    }
+
+    function renderHeatmap() {
+      var client = getSupabaseClient();
+      if (!client) return;
+      client.from('lessons').select('id, category').then(function(lRes) {
+        if (!lRes.data) return;
+        client.from('progress').select('lesson_id, best_score, total_questions').then(function(pRes) {
+          var catScores = { "Nursing Practice I": 0, "Nursing Practice II": 0, "Nursing Practice III": 0, "Nursing Practice IV": 0, "Nursing Practice V": 0 };
+          var catCounts = { "Nursing Practice I": 0, "Nursing Practice II": 0, "Nursing Practice III": 0, "Nursing Practice IV": 0, "Nursing Practice V": 0 };
+
+          var pMap = {};
+          if (pRes.data) pRes.data.forEach(p => pMap[p.lesson_id] = p);
+
+          lRes.data.forEach(l => {
+            var cat = l.category || "Nursing Practice I";
+            var p = pMap[l.id];
+            if (p && p.total_questions > 0) {
+              catScores[cat] += (p.best_score / p.total_questions);
+              catCounts[cat]++;
+            }
+          });
+
+          var colors = ["#0369A1", "#BE123C", "#6B21A8", "#15803D", "#B45309"];
+          var keys = Object.keys(catScores);
+          var html = "";
+
+          keys.forEach((k, i) => {
+            var avg = catCounts[k] > 0 ? (catScores[k] / catCounts[k]) * 100 : 20;
+            html += `<div class="heatmap-segment" style="width: 20%; background: ${colors[i]}; opacity: ${Math.max(0.2, avg / 100)};"></div>`;
+          });
+          document.getElementById("heatmapBar").innerHTML = html;
         });
       });
     }
@@ -437,7 +604,7 @@
           getSupabaseClient().from('progress').insert([{ lesson_id: dbRes.data.id, current_question_index: 0, total_questions: res.data.quiz.length }])
             .then(function() {
               genBtn.disabled = false; genBtn.innerText = "Generate Interactive Quiz";
-              loadLessons();
+              loadLessons(); renderHeatmap();
               startQuiz(dbRes.data.id);
             });
         });
@@ -448,16 +615,16 @@
       getSupabaseClient().from('lessons').select('*').eq('id', lessonId).single().then(function(lessonRes) {
         currentLesson = lessonRes.data;
         currentQuestions = currentLesson.questions;
-        currentIndex = 0; score = 0; missedIndexes = [];
+        currentIndex = 0; score = 0; missedIndexes = []; flaggedIndexes = [];
+        totalTimeSpentSec = 0; questionStartTimes = Date.now();
 
-        // Update header for quiz mode
         document.getElementById('mainHeader').innerText = "Best of luck, my Future Doctor!";
-
         document.getElementById('setup').classList.add('hidden');
         document.getElementById('quiz').classList.remove('hidden');
         document.getElementById('summaryView').classList.add('hidden');
         document.getElementById('quizControls').classList.remove('hidden');
         
+        renderDrawer();
         renderQuestion();
       });
     }
@@ -486,6 +653,8 @@
       document.getElementById('cardFront').innerText = q.question;
       document.getElementById('cardBack').innerText = "Answer: " + q.options[q.answer] + "\n\n" + q.explanation;
 
+      updateDrawer();
+
       if (document.getElementById("timerToggle").checked && !isFlashcardMode) {
         startTimer();
       }
@@ -499,10 +668,7 @@
       timerInterval = setInterval(function() {
         timeLeft--;
         document.getElementById("timeRemaining").innerText = timeLeft;
-        if (timeLeft <= 0) {
-          stopTimer();
-          checkAnswer(-1);
-        }
+        if (timeLeft <= 0) { stopTimer(); checkAnswer(-1); }
       }, 1000);
     }
 
@@ -513,6 +679,10 @@
 
     function checkAnswer(selectedIdx) {
       stopTimer();
+      var now = Date.now();
+      totalTimeSpentSec += Math.round((now - questionStartTimes) / 1000);
+      questionStartTimes = now;
+
       var q = currentQuestions[currentIndex];
       var btns = document.querySelectorAll('.option');
       
@@ -536,6 +706,7 @@
       }
 
       document.getElementById('nextBtn').classList.remove('hidden');
+      updateDrawer();
     }
 
     function nextQuestion() {
@@ -551,6 +722,22 @@
 
       var pct = Math.round((score / currentQuestions.length) * 100);
       document.getElementById('scoreSummary').innerText = `You scored ${score} / ${currentQuestions.length} (${pct}%)`;
+
+      // Pace Calculation
+      var avgTime = currentQuestions.length ? Math.round(totalTimeSpentSec / currentQuestions.length) : 0;
+      var paceIndicator = avgTime <= 25 ? "⚡ Fast & Accurate Recall" : "🐢 Pace Needs Work (Take practice drills)";
+      document.getElementById('timePaceSummary').innerText = `Average Pace: ${avgTime}s / question — ${paceIndicator}`;
+
+      // Animate Radial Ring
+      var circumference = 339.29;
+      var offset = circumference - (pct / 100) * circumference;
+      document.getElementById('scoreMeter').style.strokeDashoffset = offset;
+      document.getElementById('radialPct').innerText = pct + "%";
+
+      // Confetti Effect for High Scores (80%+)
+      if (pct >= 80 && window.confetti) {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      }
 
       var sumList = document.getElementById('summaryList');
       var summaryItems = currentLesson.summary || ["Review core lecture concepts carefully."];
@@ -568,6 +755,36 @@
       });
     }
 
+    function renderDrawer() {
+      var drawer = document.getElementById("gridDrawer");
+      drawer.innerHTML = currentQuestions.map((_, i) => `
+        <div class="grid-item" id="gridItem-${i}" onclick="jumpToQuestion(${i})">${i + 1}</div>
+      `).join('');
+    }
+
+    function updateDrawer() {
+      currentQuestions.forEach((_, i) => {
+        var el = document.getElementById(`gridItem-${i}`);
+        if (!el) return;
+        el.className = "grid-item";
+        if (i < currentIndex) el.classList.add("answered");
+        if (i === currentIndex) el.classList.add("current");
+        if (flaggedIndexes.includes(i)) el.classList.add("flagged");
+      });
+    }
+
+    function jumpToQuestion(i) {
+      currentIndex = i;
+      renderQuestion();
+    }
+
+    function toggleFlagCurrent() {
+      var idx = flaggedIndexes.indexOf(currentIndex);
+      if (idx > -1) flaggedIndexes.splice(idx, 1);
+      else flaggedIndexes.push(currentIndex);
+      updateDrawer();
+    }
+
     function startWeakSpotReview() {
       currentQuestions = missedIndexes.map(i => currentLesson.questions[i]);
       currentIndex = 0; score = 0; missedIndexes = [];
@@ -579,7 +796,7 @@
 
     function toggleMode() {
       isFlashcardMode = !isFlashcardMode;
-      document.getElementById('modeBtn').innerText = isFlashcardMode ? "Flip to Quiz 📝" : "Flip to Flashcards 🎴";
+      document.getElementById('modeBtn').innerText = isFlashcardMode ? "📝 Quiz Mode" : "🎴 Flashcards";
       document.getElementById('quizView').classList.toggle('hidden', isFlashcardMode);
       document.getElementById('flashcardView').classList.toggle('hidden', !isFlashcardMode);
       if (isFlashcardMode) stopTimer();
@@ -587,20 +804,21 @@
 
     function deleteLesson(id) {
       if (confirm("Delete this lesson?")) {
-        getSupabaseClient().from('lessons').delete().eq('id', id).then(loadLessons);
+        getSupabaseClient().from('lessons').delete().eq('id', id).then(function() {
+          loadLessons(); renderHeatmap();
+        });
       }
     }
 
     function exitQuiz() {
       stopTimer();
-      // Restore header on return
+      document.body.classList.remove("focus-mode");
       document.getElementById('mainHeader').innerText = "Welcome back, Bazty James!";
-
       document.getElementById('quiz').classList.add('hidden');
       document.getElementById('setup').classList.remove('hidden');
       document.getElementById('quizView').classList.remove('hidden');
       document.getElementById('flashcardView').classList.add('hidden');
-      loadLessons();
+      loadLessons(); renderHeatmap();
     }
   </script>
 </body>
