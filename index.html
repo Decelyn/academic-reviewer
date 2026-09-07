@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome back, Bazty James!</title>
   
-  <!-- Load Google Fonts -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Load Supabase JS SDK -->
+  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
@@ -26,15 +26,12 @@
       --secondary-text: #4A4640;
       --option-bg: #FCFBFA;
       --option-border: #E8E4DD;
-      
       --correct-bg: #EAEFD9;
       --correct-border: #A1B872;
       --correct-text: #32471B;
-      
       --incorrect-bg: #F9EAE1;
       --incorrect-border: #E4A18B;
       --incorrect-text: #632214;
-      
       --hint-bg: #FAF1DD;
       --hint-text: #705118;
     }
@@ -49,7 +46,6 @@
       margin: 0 auto;
       padding: 2.5rem 1.25rem;
       line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
     }
 
     h1 {
@@ -66,7 +62,6 @@
       color: var(--text-main);
       margin-top: 0;
       margin-bottom: 0.75rem;
-      letter-spacing: -0.01em;
     }
 
     .box {
@@ -96,7 +91,6 @@
       border-radius: 10px;
       padding: 12px 14px;
       margin-bottom: 16px;
-      transition: all 0.2s ease;
     }
 
     textarea {
@@ -130,7 +124,6 @@
 
     .btn:hover {
       background-color: var(--primary-hover);
-      transform: translateY(-1px);
     }
 
     .btn-secondary {
@@ -163,7 +156,6 @@
     .option:hover {
       border-color: var(--primary);
       background: #FFFFFF;
-      transform: translateY(-1px);
     }
 
     .correct {
@@ -238,7 +230,7 @@
         <option value="100">100 Questions</option>
       </select>
       
-      <button class="btn" id="generateBtn" type="button" onclick="handleGenerateClick()">Generate Interactive Quiz</button>
+      <button class="btn" id="generateBtn" type="button">Generate Interactive Quiz</button>
     </div>
 
     <div class="box">
@@ -249,7 +241,7 @@
 
   <div id="quiz" class="hidden">
     <div class="box">
-      <button class="btn btn-secondary" onclick="exitQuiz()">← Back to Lessons</button>
+      <button class="btn btn-secondary" id="backBtn">← Back to Lessons</button>
       <h2 id="qTitle" style="margin-top: 16px;"></h2>
       <p id="qText" style="font-size: 1.05rem; font-weight: 600; color: var(--text-main); margin-top: 16px;"></p>
       
@@ -259,139 +251,125 @@
       <div id="feedback" class="feedback hidden"></div>
       
       <div style="margin-top: 20px; display: flex; gap: 10px;">
-        <button class="btn btn-secondary" onclick="toggleHint()">Toggle Hint</button>
-        <button id="nextBtn" class="btn hidden" onclick="nextQuestion()">Next Question →</button>
+        <button class="btn btn-secondary" id="hintBtn">Toggle Hint</button>
+        <button id="nextBtn" class="btn hidden">Next Question →</button>
       </div>
     </div>
   </div>
 
   <script>
-    const SUPABASE_URL = "https://ahswtcanvsljnprksgem.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable__JiMbUYibb3YkSZlyaZVHg_5EaXv-BA";
+    var SUPABASE_URL = "https://ahswtcanvsljnprksgem.supabase.co";
+    var SUPABASE_ANON_KEY = "sb_publishable__JiMbUYibb3YkSZlyaZVHg_5EaXv-BA";
     
-    // Initialize Supabase immediately
-    let supabase = null;
-    try {
+    var supabase = null;
+    var currentLesson = null;
+    var currentQuestions = [];
+    var currentIndex = 0;
+
+    // Attach click events securely without inline HTML onclick attributes
+    document.addEventListener("DOMContentLoaded", function() {
       if (window.supabase) {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      }
-    } catch (e) {
-      console.error("Supabase Init Error:", e);
-    }
-
-    let currentLesson = null;
-    let currentQuestions = [];
-    let currentIndex = 0;
-
-    window.onload = function() {
-      if (supabase) {
         loadLessons();
       } else {
-        document.getElementById('lessonList').innerHTML = "<p style='color: var(--text-muted);'>Database SDK not initialized. Please refresh.</p>";
+        console.error("Supabase SDK script failed to load.");
       }
-    };
 
-    async function loadLessons() {
+      document.getElementById("generateBtn").addEventListener("click", handleGenerateClick);
+      document.getElementById("backBtn").addEventListener("click", exitQuiz);
+      document.getElementById("hintBtn").addEventListener("click", toggleHint);
+      document.getElementById("nextBtn").addEventListener("click", nextQuestion);
+    });
+
+    function loadLessons() {
       if (!supabase) return;
-      try {
-        const { data, error } = await supabase.from('lessons').select('id, title, created_at').order('created_at', { ascending: false });
-        const container = document.getElementById('lessonList');
-        
-        if (error || !data || data.length === 0) {
-          container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.9rem;'>No saved lessons found.</p>";
-          return;
-        }
-        
-        container.innerHTML = data.map(l => `
-          <div class="lesson-item">
-            <span class="lesson-title">${l.title}</span>
-            <button class="btn btn-secondary" style="width: auto; padding: 8px 14px; font-size: 0.85rem;" onclick="startQuiz('${l.id}')">Start / Resume</button>
-          </div>
-        `).join('');
-      } catch (err) {
-        console.error("Error loading lessons:", err);
-      }
+      supabase.from('lessons').select('id, title, created_at').order('created_at', { ascending: false })
+        .then(function(res) {
+          var container = document.getElementById('lessonList');
+          if (res.error || !res.data || res.data.length === 0) {
+            container.innerHTML = "<p style='color: var(--text-muted); font-size: 0.9rem;'>No saved lessons found.</p>";
+            return;
+          }
+          
+          container.innerHTML = res.data.map(function(l) {
+            return '<div class="lesson-item">' +
+                     '<span class="lesson-title">' + l.title + '</span>' +
+                     '<button class="btn btn-secondary" style="width: auto; padding: 8px 14px; font-size: 0.85rem;" onclick="startQuiz(\'' + l.id + '\')">Start / Resume</button>' +
+                   '</div>';
+          }).join('');
+        });
     }
 
-    async function handleGenerateClick() {
-      const title = document.getElementById('lessonTitle').value;
-      const transcript = document.getElementById('transcript').value;
-      const numQuestions = document.getElementById('numQuestions').value;
+    function handleGenerateClick() {
+      var title = document.getElementById('lessonTitle').value;
+      var transcript = document.getElementById('transcript').value;
+      var numQuestions = document.getElementById('numQuestions').value;
 
       if (!title || !transcript) {
-        alert("Please enter both a Lesson Title and Transes / Notes Text before generating.");
+        alert("Please enter both a Lesson Title and Transes / Notes Text.");
         return;
       }
 
       if (!supabase) {
-        alert("Database connection failed. Please check your internet connection and refresh.");
+        alert("Supabase SDK is not connected. Please refresh the page.");
         return;
       }
 
-      const genBtn = document.getElementById('generateBtn');
+      var genBtn = document.getElementById('generateBtn');
       genBtn.disabled = true;
       genBtn.innerText = "Generating Quiz... (Please wait 15-30s)";
 
-      try {
-        const { data, error } = await supabase.functions.invoke('generate-quiz', {
-          body: { transcript, numQuestions }
+      supabase.functions.invoke('generate-quiz', {
+        body: { transcript: transcript, numQuestions: numQuestions }
+      }).then(function(res) {
+        if (res.error || !res.data || !res.data.quiz) {
+          console.error("Quiz Error:", res.error);
+          alert("Failed to generate quiz. Please check your Supabase Edge Function.");
+          genBtn.disabled = false;
+          genBtn.innerText = "Generate Interactive Quiz";
+          return;
+        }
+
+        supabase.from('lessons').insert([
+          { title: title, questions: res.data.quiz }
+        ]).select().single().then(function(dbRes) {
+          if (dbRes.error) {
+            alert("Error saving lesson: " + dbRes.error.message);
+            genBtn.disabled = false;
+            genBtn.innerText = "Generate Interactive Quiz";
+            return;
+          }
+
+          supabase.from('progress').insert([{ lesson_id: dbRes.data.id, current_question_index: 0 }])
+            .then(function() {
+              document.getElementById('lessonTitle').value = "";
+              document.getElementById('transcript').value = "";
+              genBtn.disabled = false;
+              genBtn.innerText = "Generate Interactive Quiz";
+              loadLessons();
+              startQuiz(dbRes.data.id);
+            });
         });
-
-        if (error) {
-          console.error("Edge Function Error:", error);
-          alert("Edge Function Error: " + (error.message || JSON.stringify(error)));
-          genBtn.disabled = false;
-          genBtn.innerText = "Generate Interactive Quiz";
-          return;
-        }
-
-        if (!data || !data.quiz) {
-          alert("Received empty response from quiz generator. Please try again.");
-          genBtn.disabled = false;
-          genBtn.innerText = "Generate Interactive Quiz";
-          return;
-        }
-
-        // Save to Database
-        const { data: lessonData, error: dbError } = await supabase.from('lessons').insert([
-          { title, questions: data.quiz }
-        ]).select().single();
-
-        if (dbError) {
-          alert("Error saving lesson to database: " + dbError.message);
-          genBtn.disabled = false;
-          genBtn.innerText = "Generate Interactive Quiz";
-          return;
-        }
-
-        await supabase.from('progress').insert([{ lesson_id: lessonData.id, current_question_index: 0 }]);
-
-        document.getElementById('lessonTitle').value = "";
-        document.getElementById('transcript').value = "";
-        genBtn.disabled = false;
-        genBtn.innerText = "Generate Interactive Quiz";
-        loadLessons();
-        startQuiz(lessonData.id);
-
-      } catch (err) {
+      }).catch(function(err) {
         console.error(err);
         alert("System Error: " + err.message);
         genBtn.disabled = false;
         genBtn.innerText = "Generate Interactive Quiz";
-      }
+      });
     }
 
-    async function startQuiz(lessonId) {
-      const { data: lesson } = await supabase.from('lessons').select('*').eq('id', lessonId).single();
-      const { data: prog } = await supabase.from('progress').select('*').eq('lesson_id', lessonId).single();
+    function startQuiz(lessonId) {
+      supabase.from('lessons').select('*').eq('id', lessonId).single().then(function(lessonRes) {
+        supabase.from('progress').select('*').eq('lesson_id', lessonId).single().then(function(progRes) {
+          currentLesson = lessonRes.data;
+          currentQuestions = currentLesson.questions;
+          currentIndex = progRes.data ? progRes.data.current_question_index : 0;
 
-      currentLesson = lesson;
-      currentQuestions = lesson.questions;
-      currentIndex = prog ? prog.current_question_index : 0;
-
-      document.getElementById('setup').classList.add('hidden');
-      document.getElementById('quiz').classList.remove('hidden');
-      renderQuestion();
+          document.getElementById('setup').classList.add('hidden');
+          document.getElementById('quiz').classList.remove('hidden');
+          renderQuestion();
+        });
+      });
     }
 
     function renderQuestion() {
@@ -403,34 +381,34 @@
         return;
       }
 
-      const q = currentQuestions[currentIndex];
-      document.getElementById('qTitle').innerText = `${currentLesson.title} (${currentIndex + 1}/${currentQuestions.length})`;
+      var q = currentQuestions[currentIndex];
+      document.getElementById('qTitle').innerText = currentLesson.title + " (" + (currentIndex + 1) + "/" + currentQuestions.length + ")";
       document.getElementById('qText').innerText = q.question;
       
-      const hintBox = document.getElementById('hint');
+      var hintBox = document.getElementById('hint');
       hintBox.innerText = "💡 Hint: " + q.hint;
       hintBox.classList.add('hidden');
       
       document.getElementById('feedback').classList.add('hidden');
       document.getElementById('nextBtn').classList.add('hidden');
 
-      const optsDiv = document.getElementById('options');
-      optsDiv.innerHTML = q.options.map((opt, i) => `
-        <button class="option" onclick="checkAnswer(${i})">${opt}</button>
-      `).join('');
+      var optsDiv = document.getElementById('options');
+      optsDiv.innerHTML = q.options.map(function(opt, i) {
+        return '<button class="option" onclick="checkAnswer(' + i + ')">' + opt + '</button>';
+      }).join('');
     }
 
-    async function checkAnswer(selectedIdx) {
-      const q = currentQuestions[currentIndex];
-      const btns = document.querySelectorAll('.option');
+    function checkAnswer(selectedIdx) {
+      var q = currentQuestions[currentIndex];
+      var btns = document.querySelectorAll('.option');
       
-      btns.forEach((btn, i) => {
+      btns.forEach(function(btn, i) {
         btn.disabled = true;
         if (i === q.answer) btn.classList.add('correct');
         if (i === selectedIdx && i !== q.answer) btn.classList.add('incorrect');
       });
 
-      const fb = document.getElementById('feedback');
+      var fb = document.getElementById('feedback');
       fb.classList.remove('hidden');
       
       if (selectedIdx === q.answer) {
@@ -445,7 +423,7 @@
 
       document.getElementById('nextBtn').classList.remove('hidden');
 
-      await supabase.from('progress').upsert({
+      supabase.from('progress').upsert({
         lesson_id: currentLesson.id,
         current_question_index: currentIndex + 1
       });
