@@ -178,7 +178,7 @@
 </head>
 <body>
 
-  <h1>Welcome back, Bazty James!</h1>
+  <h1 id="mainHeader">Welcome back, Bazty James!</h1>
 
   <div id="setup">
     <div class="box">
@@ -450,6 +450,9 @@
         currentQuestions = currentLesson.questions;
         currentIndex = 0; score = 0; missedIndexes = [];
 
+        // Update header for quiz mode
+        document.getElementById('mainHeader').innerText = "Best of luck, my Future Doctor!";
+
         document.getElementById('setup').classList.add('hidden');
         document.getElementById('quiz').classList.remove('hidden');
         document.getElementById('summaryView').classList.add('hidden');
@@ -590,6 +593,9 @@
 
     function exitQuiz() {
       stopTimer();
+      // Restore header on return
+      document.getElementById('mainHeader').innerText = "Welcome back, Bazty James!";
+
       document.getElementById('quiz').classList.add('hidden');
       document.getElementById('setup').classList.remove('hidden');
       document.getElementById('quizView').classList.remove('hidden');
