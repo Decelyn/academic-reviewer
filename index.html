@@ -10,8 +10,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <!-- Supabase SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Primary Supabase CDN (unpkg) with fallback -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script>
+    if (!window.supabase) {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.39.8/supabase.min.js"><\/script>');
+    }
+  </script>
   
   <style>
     :root {
@@ -261,18 +266,31 @@
     var SUPABASE_URL = "https://ahswtcanvsljnprksgem.supabase.co";
     var SUPABASE_ANON_KEY = "sb_publishable__JiMbUYibb3YkSZlyaZVHg_5EaXv-BA";
     
-    var supabase = null;
+    var dbClient = null;
     var currentLesson = null;
     var currentQuestions = [];
     var currentIndex = 0;
 
-    // Attach click events securely without inline HTML onclick attributes
+    function getSupabaseClient() {
+      if (!dbClient) {
+        if (window.supabase && typeof window.supabase.createClient === 'function') {
+          dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else if (window.supabaseJs && typeof window.supabaseJs.createClient === 'function') {
+          dbClient = window.supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+      }
+      return dbClient;
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-      if (window.supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      var client = getSupabaseClient();
+      if (client) {
         loadLessons();
       } else {
-        console.error("Supabase SDK script failed to load.");
+        document.getElementById('lessonList').innerHTML = "<p style='color: var(--text-muted); font-size: 0.9rem;'>Connecting to database...</p>";
+        setTimeout(function() {
+          if (getSupabaseClient()) loadLessons();
+        }, 1500);
       }
 
       document.getElementById("generateBtn").addEventListener("click", handleGenerateClick);
@@ -282,8 +300,9 @@
     });
 
     function loadLessons() {
-      if (!supabase) return;
-      supabase.from('lessons').select('id, title, created_at').order('created_at', { ascending: false })
+      var client = getSupabaseClient();
+      if (!client) return;
+      client.from('lessons').select('id, title, created_at').order('created_at', { ascending: false })
         .then(function(res) {
           var container = document.getElementById('lessonList');
           if (res.error || !res.data || res.data.length === 0) {
@@ -310,8 +329,9 @@
         return;
       }
 
-      if (!supabase) {
-        alert("Supabase SDK is not connected. Please refresh the page.");
+      var client = getSupabaseClient();
+      if (!client) {
+        alert("Database SDK failed to connect. Please check your network or ad-blocker settings and refresh.");
         return;
       }
 
@@ -319,18 +339,18 @@
       genBtn.disabled = true;
       genBtn.innerText = "Generating Quiz... (Please wait 15-30s)";
 
-      supabase.functions.invoke('generate-quiz', {
+      client.functions.invoke('generate-quiz', {
         body: { transcript: transcript, numQuestions: numQuestions }
       }).then(function(res) {
         if (res.error || !res.data || !res.data.quiz) {
           console.error("Quiz Error:", res.error);
-          alert("Failed to generate quiz. Please check your Supabase Edge Function.");
+          alert("Failed to generate quiz. Check your Supabase Edge Function.");
           genBtn.disabled = false;
           genBtn.innerText = "Generate Interactive Quiz";
           return;
         }
 
-        supabase.from('lessons').insert([
+        client.from('lessons').insert([
           { title: title, questions: res.data.quiz }
         ]).select().single().then(function(dbRes) {
           if (dbRes.error) {
@@ -340,7 +360,7 @@
             return;
           }
 
-          supabase.from('progress').insert([{ lesson_id: dbRes.data.id, current_question_index: 0 }])
+          client.from('progress').insert([{ lesson_id: dbRes.data.id, current_question_index: 0 }])
             .then(function() {
               document.getElementById('lessonTitle').value = "";
               document.getElementById('transcript').value = "";
@@ -359,8 +379,10 @@
     }
 
     function startQuiz(lessonId) {
-      supabase.from('lessons').select('*').eq('id', lessonId).single().then(function(lessonRes) {
-        supabase.from('progress').select('*').eq('lesson_id', lessonId).single().then(function(progRes) {
+      var client = getSupabaseClient();
+      if (!client) return;
+      client.from('lessons').select('*').eq('id', lessonId).single().then(function(lessonRes) {
+        client.from('progress').select('*').eq('lesson_id', lessonId).single().then(function(progRes) {
           currentLesson = lessonRes.data;
           currentQuestions = currentLesson.questions;
           currentIndex = progRes.data ? progRes.data.current_question_index : 0;
@@ -423,10 +445,13 @@
 
       document.getElementById('nextBtn').classList.remove('hidden');
 
-      supabase.from('progress').upsert({
-        lesson_id: currentLesson.id,
-        current_question_index: currentIndex + 1
-      });
+      var client = getSupabaseClient();
+      if (client) {
+        client.from('progress').upsert({
+          lesson_id: currentLesson.id,
+          current_question_index: currentIndex + 1
+        });
+      }
     }
 
     function nextQuestion() {
