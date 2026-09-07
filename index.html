@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cel's Interactive Reviewer & Guide</title>
   
-  <!-- Load Google Fonts (Plus Jakarta Sans) -->
+  <!-- Load Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,27 +15,27 @@
   
   <style>
     :root {
-      --bg: #FAF7F2;            /* Soft warm cream background */
-      --card-bg: #FFFFFF;       /* Crisp warm white card surface */
-      --card-border: #EFECE6;   /* Subtle sand border */
-      --text-main: #2D2A26;     /* Deep warm charcoal for primary text */
-      --text-muted: #736E65;    /* Soft taupe for body/secondary text */
-      --primary: #D97757;       /* Soft terracotta accent */
-      --primary-hover: #C56343; /* Rich warm terracotta on hover */
-      --secondary-btn: #EFECE6; /* Light warm gray button */
+      --bg: #FAF7F2;
+      --card-bg: #FFFFFF;
+      --card-border: #EFECE6;
+      --text-main: #2D2A26;
+      --text-muted: #736E65;
+      --primary: #D97757;
+      --primary-hover: #C56343;
+      --secondary-btn: #EFECE6;
       --secondary-text: #4A4640;
-      --option-bg: #FCFBFA;     /* Gentle option card tone */
+      --option-bg: #FCFBFA;
       --option-border: #E8E4DD;
       
-      --correct-bg: #EAEFD9;    /* Soft sage green */
+      --correct-bg: #EAEFD9;
       --correct-border: #A1B872;
       --correct-text: #32471B;
       
-      --incorrect-bg: #F9EAE1;  /* Gentle blush rose */
+      --incorrect-bg: #F9EAE1;
       --incorrect-border: #E4A18B;
       --incorrect-text: #632214;
       
-      --hint-bg: #FAF1DD;       /* Soft warm butter yellow */
+      --hint-bg: #FAF1DD;
       --hint-text: #705118;
     }
 
@@ -238,7 +238,7 @@
         <option value="100">100 Questions</option>
       </select>
       
-      <button class="btn" onclick="generateAndSave()">Generate Interactive Quiz</button>
+      <button class="btn" id="generateBtn" onclick="generateAndSave()">Generate Interactive Quiz</button>
     </div>
 
     <div class="box">
@@ -266,17 +266,25 @@
   </div>
 
   <script>
-    // PRE-FILLED WITH YOUR EXACT SUPABASE CREDENTIALS
     const SUPABASE_URL = "https://ahswtcanvsljnprksgem.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable__JiMbUYibb3YkSZlyaZVHg_5EaXv-BA";
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+    let supabase = null;
     let currentLesson = null;
     let currentQuestions = [];
     let currentIndex = 0;
 
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        loadLessons();
+      } else {
+        console.error("Supabase SDK failed to load.");
+      }
+    });
+
     async function loadLessons() {
+      if (!supabase) return;
       const { data, error } = await supabase.from('lessons').select('id, title, created_at').order('created_at', { ascending: false });
       const container = document.getElementById('lessonList');
       
@@ -300,32 +308,49 @@
 
       if (!title || !transcript) return alert("Please fill in both the title and text transcript.");
 
-      alert("Generating quiz... this can take up to 20-30 seconds depending on question count.");
+      const genBtn = document.getElementById('generateBtn');
+      genBtn.disabled = true;
+      genBtn.innerText = "Generating Quiz... Please wait";
 
-      // Call Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('generate-quiz', {
-        body: { transcript, numQuestions }
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-quiz', {
+          body: { transcript, numQuestions }
+        });
 
-      if (error || !data || !data.quiz) {
-        console.error(error);
-        return alert("Failed to generate quiz. Make sure your Edge Function and GEMINI_API_KEY secret are configured correctly.");
+        if (error || !data || !data.quiz) {
+          console.error(error);
+          alert("Failed to generate quiz. Check that your GEMINI_API_KEY secret is set in Supabase.");
+          genBtn.disabled = false;
+          genBtn.innerText = "Generate Interactive Quiz";
+          return;
+        }
+
+        const { data: lessonData, error: dbError } = await supabase.from('lessons').insert([
+          { title, questions: data.quiz }
+        ]).select().single();
+
+        if (dbError) {
+          alert("Error saving lesson to database: " + dbError.message);
+          genBtn.disabled = false;
+          genBtn.innerText = "Generate Interactive Quiz";
+          return;
+        }
+
+        await supabase.from('progress').insert([{ lesson_id: lessonData.id, current_question_index: 0 }]);
+
+        document.getElementById('lessonTitle').value = "";
+        document.getElementById('transcript').value = "";
+        genBtn.disabled = false;
+        genBtn.innerText = "Generate Interactive Quiz";
+        loadLessons();
+        startQuiz(lessonData.id);
+
+      } catch (err) {
+        console.error(err);
+        alert("An error occurred: " + err.message);
+        genBtn.disabled = false;
+        genBtn.innerText = "Generate Interactive Quiz";
       }
-
-      // Save lesson and question bank to Database
-      const { data: lessonData, error: dbError } = await supabase.from('lessons').insert([
-        { title, questions: data.quiz }
-      ]).select().single();
-
-      if (dbError) return alert("Error saving lesson to database: " + dbError.message);
-
-      // Initialize progress
-      await supabase.from('progress').insert([{ lesson_id: lessonData.id, current_question_index: 0 }]);
-
-      document.getElementById('lessonTitle').value = "";
-      document.getElementById('transcript').value = "";
-      loadLessons();
-      startQuiz(lessonData.id);
     }
 
     async function startQuiz(lessonId) {
@@ -392,7 +417,6 @@
 
       document.getElementById('nextBtn').classList.remove('hidden');
 
-      // Update progress in database
       await supabase.from('progress').upsert({
         lesson_id: currentLesson.id,
         current_question_index: currentIndex + 1
@@ -413,8 +437,6 @@
       document.getElementById('setup').classList.remove('hidden');
       loadLessons();
     }
-
-    loadLessons();
   </script>
 </body>
 </html>
